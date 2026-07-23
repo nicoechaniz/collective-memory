@@ -1,0 +1,196 @@
+{
+  "_contrato": "Politica de corpus: que se indexa y que no. Las exclusiones de seguridad (claves, credenciales, tokens) se conservan tal cual del sistema de referencia. Los directorios pesados propios de cada instalacion se agregan aca, no en el codigo.",
+  "version": 1,
+  "include_exts": {
+    "fs_doc": [
+      ".md",
+      ".txt",
+      ".rst",
+      ".tex"
+    ],
+    "fs_pdf": [
+      ".pdf"
+    ],
+    "fs_notebook": [
+      ".ipynb"
+    ],
+    "fs_code": [
+      ".py",
+      ".sh",
+      ".bash",
+      ".zsh",
+      ".js",
+      ".jsx",
+      ".ts",
+      ".tsx",
+      ".vue",
+      ".svelte",
+      ".c",
+      ".cc",
+      ".cpp",
+      ".h",
+      ".hpp",
+      ".cu",
+      ".cuh"
+    ],
+    "fs_config": [
+      ".json",
+      ".yaml",
+      ".yml",
+      ".toml",
+      ".ini",
+      ".cfg",
+      ".conf",
+      ".css",
+      ".html"
+    ]
+  },
+  "curated_extra_exts": [
+    ".txt",
+    ".sql",
+    ".jsonl"
+  ],
+  "exclude_dir_names": [
+    ".git",
+    ".hg",
+    ".svn",
+    ".claude",
+    ".codex",
+    ".agents",
+    ".venv",
+    "venv",
+    "env",
+    "node_modules",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".next",
+    "build",
+    "dist",
+    "out",
+    ".cache",
+    "cache",
+    "model_cache",
+    "unsloth_compiled_cache",
+    ".tools"
+  ],
+  "exclude_dir_globs": [
+    ".venv-*",
+    "*-venv/**",
+    ".mapa/hf/**",
+    ".mapa/venv/**",
+    ".mapa/snapshots/**",
+    ".mapa/staging/**",
+    ".mapa/overlays/**",
+    ".mapa/discovery/**",
+    ".mapa/ui/**",
+    ".mapa/ui.*/**",
+    ".mapa/web/**",
+    ".mapa/quartz/**",
+    "hf-cache/**",
+    "*/checkpoints/**",
+    "*/models/**"
+  ],
+  "exclude_file_names": [
+    ".env",
+    ".htpasswd",
+    ".git-credentials",
+    ".netrc",
+    ".pgpass",
+    ".npmrc",
+    ".pypirc",
+    ".dockercfg"
+  ],
+  "exclude_file_globs": [
+    "*.key",
+    "*.pem",
+    "id_rsa*",
+    "id_ed25519*",
+    "*.tfstate",
+    "*.kubeconfig",
+    "*.pt",
+    "*.pth",
+    "*.safetensors",
+    "*.gguf",
+    "*.bin",
+    "*.onnx",
+    "*.npy",
+    "*.npz",
+    "*.wav",
+    "*.mp3",
+    "*.flac",
+    "*.jpg",
+    "*.jpeg",
+    "*.png",
+    "*.webp",
+    "*.mp4",
+    "*.mov",
+    "*.ttf",
+    "*.so",
+    "*.o",
+    "*.db",
+    "*.sqlite",
+    "*.parquet",
+    "*.arrow"
+  ],
+  "exclude_path_globs": [
+    ".docker/config.json",
+    "*/.docker/config.json",
+    "kubeconfig/*.kubeconfig",
+    "*/kubeconfig/*.kubeconfig",
+    ".kube/config",
+    "*/.kube/config"
+  ],
+  "exclude_name_contains": [
+    "secret",
+    "credential",
+    "password"
+  ],
+  "max_file_bytes": 2097152,
+  "max_pdf_bytes": 26214400,
+  "max_extracted_chars": 500000,
+  "max_chunk_chars": 5000,
+  "doc_batch_size": 200,
+  "embed_batch_size": 32,
+  "commit_every_docs": 200,
+  "dataset_roots": [],
+  "media": {
+    "classes": {
+      "imagenes": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp",
+        ".gif",
+        ".bmp",
+        ".tiff",
+        ".svg"
+      ],
+      "audio": [
+        ".wav",
+        ".mp3",
+        ".flac",
+        ".ogg",
+        ".m4a",
+        ".opus"
+      ],
+      "video": [
+        ".mp4",
+        ".mov",
+        ".mkv",
+        ".avi",
+        ".webm"
+      ]
+    },
+    "group_depth": 4,
+    "exclude_dir_globs": [
+      ".mapa/**",
+      "hf-cache/**",
+      "ollama/**",
+      "comfyui/models/**",
+      "*/node_modules/**"
+    ]
+  },
+  "curated_roots": []
+}

@@ -1,0 +1,47 @@
+[Unit]
+Description=Discovery Playground de la memoria colectiva (sandbox mesa chica, red privada)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@SERVE_USER@
+Group=@SERVICE_GROUP@
+WorkingDirectory=@MAPA_DATA@
+Environment=MAPA_PG_PORT=8898
+Environment=HF_HOME=@MAPA_DATA@/hf
+Environment=HF_HUB_OFFLINE=1
+Environment=TRANSFORMERS_OFFLINE=1
+ExecStart=@VENV_PY@ @CODE_HOME@/playground.py serve
+Restart=on-failure
+RestartSec=3
+
+# Hardening (clon de mapa-serve.service)
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictSUIDSGID=yes
+LockPersonality=yes
+IPAddressDeny=any
+IPAddressAllow=@BIND_CIDR@ @LLM_CIDR@ 127.0.0.0/8
+
+# Dos paths escribibles y solo dos: el sandbox (persistente) y /run/mapa (tmpfs
+# runtime para gpu_lock). El ledger del dueño, overlays y el índice quedan
+# read-only A NIVEL OS — single-writer garantizado por systemd, no solo por código.
+ReadOnlyPaths=@MAPA_DATA@
+ReadOnlyPaths=@CODE_HOME@
+ReadWritePaths=@MAPA_DATA@/discovery
+RuntimeDirectory=mapa
+RuntimeDirectoryMode=0770
+ReadWritePaths=/run/mapa
+
+MemoryMax=6G
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

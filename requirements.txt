@@ -1,0 +1,28 @@
+# Dependencias del indice de memoria colectiva.
+#
+# torch va en variante CPU por defecto: el sistema detecta GPU sola
+# (`torch.cuda.is_available()`) y la usa si esta, pero una instalacion limpia no
+# deberia arrastrar ~2,5 GB de wheels CUDA sin pedirlo. Para GPU:
+#
+#   pip install --index-url https://download.pytorch.org/whl/cu124 torch==2.6.0
+#
+# Sin GPU el indexado inicial es bastante mas lento, pero funciona igual.
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch==2.6.0
+sentence-transformers==5.6.0
+transformers==5.13.0
+numpy==2.5.1
+scipy==1.18.0
+scikit-learn==1.9.0
+
+# Busqueda vectorial dentro de SQLite. Requiere un Python compilado con
+# extensiones cargables (`--enable-loadable-sqlite-extensions`) y FTS5:
+# el preflight lo verifica EJECUTANDOLO, no mirando versiones.
+sqlite-vec==0.1.9
+
+# Grafo y deteccion de comunidades del atlas.
+networkx==3.6.1
+python-igraph==0.11.9
+leidenalg==0.10.2

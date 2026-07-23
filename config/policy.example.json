@@ -1,0 +1,16 @@
+{
+  "_contrato": "Politica de una corrida del director. La escribe el wrapper en cada arranque; esto documenta su forma. Vive en el control plane (fuera del corpus), no en el repo.",
+  "run_id": "<timestamp>",
+  "db": "<ruta al ledger>",
+  "backend": "codex",
+  "model": "<modelo>",
+  "provider": "default",
+  "dry": true,
+  "judge_only": false,
+  "budgets": {
+    "max_campaigns": 2,
+    "max_tasks": 3,
+    "max_tool_calls": 200,
+    "limit_max": 30
+  }
+}

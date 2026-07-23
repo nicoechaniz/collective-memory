@@ -1,0 +1,36 @@
+# Configuracion local: contiene la ruta absoluta del corpus de quien instale.
+mapa.env
+
+# Datos, indices y artefactos: nunca se versionan.
+*.db
+*.db-wal
+*.db-shm
+*.sqlite*
+*.log
+.mapa/
+ui/
+ui.*/
+snapshots/
+staging/
+overlays/
+hf/
+
+# Entornos y dependencias
+venv/
+.venv*/
+__pycache__/
+*.py[cod]
+node_modules/
+dist/
+dist-lab/
+
+# Credenciales: no deberian existir en el arbol, pero por si acaso.
+*-config/
+.credentials.json
+.claude.json*
+auth.json
+mcp_token*
+*.key
+*.pem
+
+.DS_Store

@@ -1,0 +1,15 @@
+{
+  "_contrato": "Proveedores de modelo para sintesis y descubrimiento. Local-first: por defecto todo apunta a un runtime en la propia maquina. Un proveedor remoto es posible pero cambia el modelo de amenaza (ver docs/seguridad.md).",
+  "default": {
+    "type": "ollama",
+    "url": "http://127.0.0.1:11434",
+    "model": "qwen3:8b",
+    "supports_tools": true
+  },
+  "grande": {
+    "type": "ollama",
+    "url": "http://127.0.0.1:11434",
+    "model": "gemma3:12b",
+    "supports_tools": false
+  }
+}

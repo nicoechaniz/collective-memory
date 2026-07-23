@@ -1,0 +1,57 @@
+[Unit]
+Description=Indice de memoria colectiva — serving read-only
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=@SERVE_USER@
+Group=@SERVICE_GROUP@
+ExecStart=@VENV_PY@ @CODE_HOME@/serve.py
+Environment=MAPA_ROOT=@MAPA_ROOT@
+Environment=MAPA_DATA=@MAPA_DATA@
+Environment=MAPA_BIND=@BIND_ADDR@
+Environment=MAPA_PORT=@SERVE_PORT@
+Environment=MAPA_BIND_ALLOW_LAN=@BIND_ALLOW_LAN@
+Environment=HF_HOME=@MAPA_DATA@/hf
+Environment=HF_HUB_OFFLINE=1
+Environment=TRANSFORMERS_OFFLINE=1
+
+# --- hardening ---
+NoNewPrivileges=yes
+ProtectSystem=strict
+# ProtectHome=yes deja /home y /root VACIOS dentro del namespace: por eso el
+# instalador rechaza un MAPA_ROOT ahi adentro (seria invisible para el servicio).
+ProtectHome=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# Dos paths: datos y codigo, que ya no viven en el mismo directorio.
+ReadOnlyPaths=@MAPA_DATA@
+ReadOnlyPaths=@CODE_HOME@
+RuntimeDirectory=mapa
+RuntimeDirectoryMode=0770
+ReadWritePaths=/run/mapa
+
+# --- filtro de red: LA garantia de no-exposicion ---
+# El bind de Python es la primera capa; esta es la que manda. @BIND_CIDR@ es la
+# red desde la que se alcanza el servicio; @LLM_CIDR@ es adonde puede salir (el
+# proveedor de modelo) y va SEPARADO: IPAddressAllow gobierna ingress y egress a
+# la vez, asi que derivar una sola red de ambas cosas bloquearia el acceso al
+# LLM a nivel kernel, con un fallo confuso de diagnosticar.
+# OJO: esto solo aplica con cgroup v2 unificado + BPF. Donde no hay soporte,
+# systemd loguea un warning y arranca IGUAL, sin filtrar; por eso el preflight
+# lo verifica y falla cerrado cuando el bind no es loopback.
+IPAddressDeny=any
+IPAddressAllow=@BIND_CIDR@ @LLM_CIDR@ 127.0.0.0/8
+
+MemoryMax=4G
+TasksMax=64
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

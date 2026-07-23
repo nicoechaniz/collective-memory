@@ -1,0 +1,16 @@
+[Unit]
+Description=Dispara el director desde un request del Lab
+
+[Service]
+Type=oneshot
+# Corre como root porque tiene que levantar las unidades del director. Por eso
+# el watcher verifica en CODIGO que el request lo haya escrito el UID del
+# servicio web, y falla cerrado si no puede resolverlo: sin esa comprobacion,
+# cualquiera que pudiera escribir un JSON en ese directorio escalaria a root.
+ExecStart=@VENV_PY@ @CODE_HOME@/director_button_watch.py
+Environment=MAPA_ROOT=@MAPA_ROOT@
+Environment=MAPA_DATA=@MAPA_DATA@
+# Necesario para el chequeo anti-escalada: el watcher resuelve este uid y
+# descarta requests escritos por cualquier otro usuario (fail-closed).
+Environment=MAPA_SERVE_USER=@SERVE_USER@
+Environment=MAPA_GROUP=@SERVICE_GROUP@

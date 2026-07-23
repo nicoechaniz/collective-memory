@@ -1,0 +1,11 @@
+[Unit]
+Description=Watch del boton del director (canal web -> root)
+
+[Path]
+# El Lab deja un request en este directorio; el watcher lo valida y dispara.
+# La web nunca ejecuta nada privilegiado: solo escribe un archivo.
+PathChanged=@MAPA_DATA@/discovery/director_requests
+Unit=mapa-director-button.service
+
+[Install]
+WantedBy=multi-user.target

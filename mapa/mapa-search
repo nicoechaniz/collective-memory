@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Consulta read-only de la memoria colectiva.
+#   mapa-search <consulta>                                -> local
+#   mapa-search --kind fs_doc --project <proyecto> <consulta> -> local filtrado
+#   mapa-search --remote [--kind K] [--project P] <consulta> -> servicio remoto
+if [ "${1:-}" = "--remote" ]; then
+    shift
+    kind=""
+    project=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --kind) kind="${2:-}"; shift 2 ;;
+            --project) project="${2:-}"; shift 2 ;;
+            *) break ;;
+        esac
+    done
+    q="$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(' '.join(sys.argv[1:])))" "$@")"
+    extra=""
+    if [ -n "$kind" ]; then extra="${extra}&kind=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$kind")"; fi
+    if [ -n "$project" ]; then extra="${extra}&project=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$project")"; fi
+    curl -s --max-time 20 "${MAPA_SEARCH_URL:-http://127.0.0.1:8899}/search?q=${q}&k=10${extra}" | python3 -c "
+import sys, json
+try: d = json.load(sys.stdin)
+except Exception: print('(sin respuesta del servicio)'); sys.exit(1)
+print('# modo:', d.get('mode'))
+for it in d.get('results', []):
+    h = (' > ' + it['heading']) if it.get('heading') else ''
+    print(f\"[{it['kind']:10} · {it['project']:20}] {it['title']}{h}\")
+    print('    ' + it['doc_id'])
+    if it.get('snippet'): print('    …' + it['snippet'] + '…')
+    print()
+"
+    exit 0
+fi
+PY=${MAPA_PYTHON:-python3}; [ -x "$PY" ] || PY=python3
+exec "$PY" "$(dirname "$(readlink -f "$0")")/tier1.py" search "$@"

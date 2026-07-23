@@ -1,0 +1,23 @@
+{
+  "_contrato": "Bisagra de backend del director. Un backend es el CLI de agente que razona; corre en una unidad aparte, con un usuario distinto y sin datos del corpus a la vista. Viene TODO deshabilitado: habilitarlo es una decision explicita, y conviene leer docs/seguridad.md primero.",
+  "codex": {
+    "enabled": false,
+    "model": "<modelo>",
+    "effort": "medium",
+    "notes": "Tiene shell irrenunciable. Por eso la frontera es de PROCESOS (usuario propio + namespace sin el corpus), no de sandbox del CLI."
+  },
+  "claude": {
+    "enabled": false,
+    "model": "<modelo>",
+    "notes": "Sin herramientas de filesystem, la superficie es menor."
+  },
+  "local": {
+    "enabled": false,
+    "model": null,
+    "requisitos_para_habilitar": [
+      "un runner local con soporte de tool-calling estable",
+      "presupuesto de tool-calls acotado",
+      "juicio evaluado contra el ground truth del dueño"
+    ]
+  }
+}
