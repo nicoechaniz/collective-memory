@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🗺️ memoria-colectiva
+# 🗺️ collective-memory
 
 ### A living **semantic map** for a shared corpus — local-first, nothing leaves your machine.
 
@@ -17,7 +17,7 @@
 
 ---
 
-Several people — or several agents — work on the same disk, and nobody holds the whole picture. `memoria-colectiva` reads that shared corpus, builds a **hybrid semantic index** over it, compiles a navigable **atlas**, and runs a **discovery miner** that proposes non-obvious links for a human to review. The embedding model is downloaded once; after that the whole thing runs **offline** — no API call ever carries your documents off the machine.
+Several people — or several agents — work on the same disk, and nobody holds the whole picture. `collective-memory` reads that shared corpus, builds a **hybrid semantic index** over it, compiles a navigable **atlas**, and runs a **discovery miner** that proposes non-obvious links for a human to review. The embedding model is downloaded once; after that the whole thing runs **offline** — no API call ever carries your documents off the machine.
 
 ```mermaid
 flowchart LR
@@ -160,7 +160,7 @@ Full write-up in [`docs/arquitectura.md`](docs/arquitectura.md).
 ## Quickstart
 
 ```bash
-git clone https://github.com/Mar-IA-no/memoria-colectiva && cd memoria-colectiva
+git clone https://github.com/Mar-IA-no/collective-memory && cd collective-memory
 
 # tells you exactly what's missing before touching anything
 ./scripts/preflight.sh
@@ -231,7 +231,7 @@ Every claim in this README is measured, not rounded up.
 <summary><b>Expand the tree</b></summary>
 
 ```
-memoria-colectiva/
+collective-memory/
 ├── mapa/            engine — index, map, atlas, discovery, director, config
 ├── scripts/         orchestration — librarian, director, setup, preflight
 ├── prompts/         load-bearing agent prompts (director, librarian)
