@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { colorForProject } from "./colors";
+import { t, UI_LOCALE } from "./i18n";
 
 type Stats = {
   generation: string;
@@ -14,10 +15,10 @@ type Health = Record<string, unknown>;
 
 function rel(ts: number): string {
   const s = Math.max(0, Math.floor(Date.now() / 1000 - ts));
-  if (s < 90) return `hace ${s}s`;
-  if (s < 5400) return `hace ${Math.round(s / 60)}min`;
-  if (s < 129600) return `hace ${Math.round(s / 3600)}h`;
-  return `hace ${Math.round(s / 86400)}d`;
+  if (s < 90) return `${s}s ${t("atrás", "ago")}`;
+  if (s < 5400) return `${Math.round(s / 60)}min ${t("atrás", "ago")}`;
+  if (s < 129600) return `${Math.round(s / 3600)}h ${t("atrás", "ago")}`;
+  return `${Math.round(s / 86400)}d ${t("atrás", "ago")}`;
 }
 
 function fmtBytes(b: number): string {
@@ -37,7 +38,7 @@ export default function StatsPanel() {
   }, []);
 
   if (error) return <div className="error">{error}</div>;
-  if (!stats) return <div className="loading">cargando estado…</div>;
+  if (!stats) return <div className="loading">{t("cargando estado…", "loading status…")}</div>;
 
   const stale = Boolean(health?.ui_stale) || Boolean(health?.stale);
   const topProjects = Object.entries(stats.counts.by_project || {}).slice(0, 12);
@@ -46,16 +47,16 @@ export default function StatsPanel() {
   return (
     <div className="stats-panel">
       <div className={`freshness ${stale ? "stale" : "fresh"}`}>
-        <span className="dot" /> {stale ? "índice atrasado respecto a los últimos cambios" : "memoria al día"}
+        <span className="dot" /> {stale ? t("índice atrasado respecto a los últimos cambios", "index is behind the latest changes") : t("memoria al día", "memory is up to date")}
       </div>
       <dl>
-        <dt>documentos</dt><dd>{stats.counts.docs?.toLocaleString()} en {stats.counts.projects} proyectos ({stats.counts.duplicates} duplicados)</dd>
-        <dt>índice</dt><dd>{String(health?.n_chunks ?? "?")} chunks · modo {String(health?.serving_search_mode ?? "?")} · scope {String(health?.corpus_scope ?? "?")}</dd>
-        <dt>atlas</dt><dd>gen {stats.generation} · construido {rel(stats.built_at)}</dd>
-        {stats.cross_edges && <><dt>aristas cross</dt><dd>{stats.cross_edges.total.toLocaleString()}</dd></>}
-        <dt>excluidos</dt><dd>{stats.counts.excluded?.toLocaleString() ?? "—"}</dd>
+        <dt>{t("documentos", "documents")}</dt><dd>{stats.counts.docs?.toLocaleString(UI_LOCALE)} {t("en", "across")} {stats.counts.projects} {t("proyectos", "projects")} ({stats.counts.duplicates} {t("duplicados", "duplicates")})</dd>
+        <dt>{t("índice", "index")}</dt><dd>{String(health?.n_chunks ?? "?")} chunks · {t("modo", "mode")} {String(health?.serving_search_mode ?? "?")} · scope {String(health?.corpus_scope ?? "?")}</dd>
+        <dt>atlas</dt><dd>gen {stats.generation} · {t("construido", "built")} {rel(stats.built_at)}</dd>
+        {stats.cross_edges && <><dt>{t("aristas cross", "cross edges")}</dt><dd>{stats.cross_edges.total.toLocaleString(UI_LOCALE)}</dd></>}
+        <dt>{t("excluidos", "excluded")}</dt><dd>{stats.counts.excluded?.toLocaleString(UI_LOCALE) ?? "—"}</dd>
       </dl>
-      <h3>Top proyectos</h3>
+      <h3>{t("Top proyectos", "Top projects")}</h3>
       <div className="bars">
         {topProjects.map(([p, n]) => (
           <div className="bar-row" key={p} title={`${p}: ${n} docs`}>
@@ -65,7 +66,7 @@ export default function StatsPanel() {
           </div>
         ))}
       </div>
-      <h3>Por tipo</h3>
+      <h3>{t("Por tipo", "By type")}</h3>
       <div className="kind-chips">
         {Object.entries(stats.counts.by_kind || {}).map(([k, n]) => (
           <span key={k} className="chip static">{k} <b>{n}</b></span>
@@ -73,12 +74,12 @@ export default function StatsPanel() {
       </div>
       {stats.warnings?.length > 0 && (
         <details className="stats-warnings">
-          <summary>warnings del build ({stats.warnings.length})</summary>
+          <summary>{t("warnings del build", "build warnings")} ({stats.warnings.length})</summary>
           <ul>{stats.warnings.slice(0, 20).map((w, i) => <li key={i}>{w}</li>)}</ul>
         </details>
       )}
       <details className="stats-artifacts">
-        <summary>artefactos</summary>
+        <summary>{t("artefactos", "artifacts")}</summary>
         <ul>
           {Object.entries(stats.artifact_sizes || {}).map(([f, s]) => (
             <li key={f}>{f}: {fmtBytes(s.bytes)} (gz {fmtBytes(s.gzip_bytes)})</li>

@@ -6,6 +6,7 @@ import GraphView from "./GraphView";
 import SearchBox from "./SearchBox";
 import TreePanel from "./TreePanel";
 import StatsPanel from "./StatsPanel";
+import { t } from "./i18n";
 
 // --- Paneles redimensionables (persistidos en localStorage) ---
 function loadLayout(): { left: number; right: number } {
@@ -52,7 +53,7 @@ async function loadProjectsMerge(selected: string[]): Promise<GraphPayload & { n
   });
   if (cross) for (const e of cross.edges) if (nodes.has(e.source) && nodes.has(e.target) && !edges.has(e.id)) edges.set(e.id, e);
   if (nodes.size > MERGE_NODE_CAP || edges.size > MERGE_EDGE_CAP) {
-    throw new Error(`merge demasiado grande (${nodes.size} nodos / ${edges.size} aristas) — seleccioná menos proyectos`);
+    throw new Error(`${t("merge demasiado grande", "merge is too large")} (${nodes.size} ${t("nodos", "nodes")} / ${edges.size} ${t("aristas", "edges")}) — ${t("seleccioná menos proyectos", "select fewer projects")}`);
   }
   return {
     ...EMPTY_GRAPH,
@@ -406,23 +407,23 @@ export default function App() {
   return (
     <main className="shell" style={{ gridTemplateColumns: `${layout.left}px 6px minmax(0, 1fr) 6px ${layout.right}px` }}>
       <aside className="panel">
-        <p className="eyebrow">memoria colectiva</p>
-        <h1>Atlas relacional</h1>
+        <p className="eyebrow">{t("memoria colectiva", "collective memory")}</p>
+        <h1>{t("Atlas relacional", "Relational Atlas")}</h1>
         <div className="tabs">
-          <button className={tab === "vistas" ? "active" : ""} onClick={() => setTab("vistas")}>Vistas</button>
-          <button className={tab === "arbol" ? "active" : ""} onClick={() => setTab("arbol")}>Árbol</button>
-          <button className={tab === "estado" ? "active" : ""} onClick={() => setTab("estado")}>Estado</button>
+          <button className={tab === "vistas" ? "active" : ""} onClick={() => setTab("vistas")}>{t("Vistas", "Views")}</button>
+          <button className={tab === "arbol" ? "active" : ""} onClick={() => setTab("arbol")}>{t("Árbol", "Tree")}</button>
+          <button className={tab === "estado" ? "active" : ""} onClick={() => setTab("estado")}>{t("Estado", "Status")}</button>
         </div>
         {error && <div className="error">{error}</div>}
-        {loading && <div className="loading">cargando…</div>}
+        {loading && <div className="loading">{t("cargando…", "loading…")}</div>}
 
         {tab === "vistas" && (
           <>
             <div className="controls">
               <button className={view === "macro" ? "active" : ""} onClick={() => setView("macro")}>Macro</button>
               <button className={view === "global" ? "active" : ""} onClick={() => setView("global")}>Global</button>
-              <button className={view === "projects" ? "active" : ""} onClick={() => setView("projects")}>Proyectos</button>
-              <button className={view === "discovery" ? "active" : ""} onClick={() => setView("discovery")}>Hallazgos</button>
+              <button className={view === "projects" ? "active" : ""} onClick={() => setView("projects")}>{t("Proyectos", "Projects")}</button>
+              <button className={view === "discovery" ? "active" : ""} onClick={() => setView("discovery")}>{t("Hallazgos", "Findings")}</button>
               {view === "projects" && manifest && (
                 <div className="project-list">
                   {manifest.projects
@@ -442,26 +443,26 @@ export default function App() {
               )}
               {view === "neighbors" && (
                 <label className="slider">
-                  profundidad {depth}
+                  {t("profundidad", "depth")} {depth}
                   <input type="range" min={1} max={3} step={1} value={depth} onChange={(e) => setDepth(parseInt(e.target.value, 10))} />
                 </label>
               )}
-              <label><input type="checkbox" checked={communities} onChange={(e) => setCommunities(e.target.checked)} /> comunidades{mode3d ? " (solo 2D)" : ""}</label>
+              <label><input type="checkbox" checked={communities} onChange={(e) => setCommunities(e.target.checked)} /> {t("comunidades", "communities")}{mode3d ? t(" (solo 2D)", " (2D only)") : ""}</label>
               {communities && !mode3d && (
                 <span className="community-source">
                   {servedPartition
-                    ? `barrios: servidos (${servedPartition.algorithm === "louvain" ? "Louvain" : "Leiden"})`
-                    : "barrios: locales (Louvain)"}
+                    ? `${t("barrios: servidos", "communities: served")} (${servedPartition.algorithm === "louvain" ? "Louvain" : "Leiden"})`
+                    : t("barrios: locales (Louvain)", "communities: local (Louvain)")}
                 </span>
               )}
               <label><input type="checkbox" checked={mode3d} onChange={(e) => setMode3d(e.target.checked)} /> 3D</label>
               <label className="label-level">
-                etiquetas
+                {t("etiquetas", "labels")}
                 <select value={String(labelLevel)} onChange={(e) => setLabelLevel(e.target.value === "auto" ? "auto" : (parseInt(e.target.value, 10) as LabelLevel))}>
                   <option value="auto">auto (zoom)</option>
-                  <option value="1">1 · proyectos</option>
-                  <option value="2">2 · + núcleos</option>
-                  <option value="3">3 · todas</option>
+                  <option value="1">1 · {t("proyectos", "projects")}</option>
+                  <option value="2">2 · + {t("núcleos", "hubs")}</option>
+                  <option value="3">3 · {t("todas", "all")}</option>
                 </select>
               </label>
             </div>
@@ -476,9 +477,9 @@ export default function App() {
 
             {edgeTypesPresent.length > 0 && (
               <div className="legend interactive">
-                {edgeTypesPresent.map((t) => (
-                  <button key={t} className={offEdgeTypes.has(t) ? "off" : ""} onClick={() => toggleSet(setOffEdgeTypes, t)} title="click para ocultar/mostrar">
-                    <i style={{ background: edgeColor(t) }} /> {EDGE_TYPE_LABELS[t] || t}
+                {edgeTypesPresent.map((edgeType) => (
+                  <button key={edgeType} className={offEdgeTypes.has(edgeType) ? "off" : ""} onClick={() => toggleSet(setOffEdgeTypes, edgeType)} title={t("click para ocultar/mostrar", "click to hide/show")}>
+                    <i style={{ background: edgeColor(edgeType) }} /> {EDGE_TYPE_LABELS[edgeType] || edgeType}
                   </button>
                 ))}
               </div>
@@ -486,14 +487,14 @@ export default function App() {
 
             {base.edges.length > 5 && (
               <label className="slider">
-                peso mín. {weightThreshold === -Infinity ? "—" : weightThreshold.toFixed(2)}
+                {t("peso mín.", "min. weight")} {weightThreshold === -Infinity ? "—" : weightThreshold.toFixed(2)}
                 <input type="range" min={0} max={0.95} step={0.05} value={weightFrac} onChange={(e) => setWeightFrac(parseFloat(e.target.value))} />
               </label>
             )}
 
             <div className="stats">
-              <strong>{visibleNodes.length}</strong> nodos · <strong>{visibleEdges.length}</strong> relaciones
-              {base.truncated && <span className="warn"> · truncado</span>}
+              <strong>{visibleNodes.length}</strong> {t("nodos", "nodes")} · <strong>{visibleEdges.length}</strong> {t("relaciones", "relationships")}
+              {base.truncated && <span className="warn"> · {t("truncado", "truncated")}</span>}
             </div>
           </>
         )}
@@ -502,12 +503,12 @@ export default function App() {
         {tab === "estado" && <StatsPanel />}
       </aside>
 
-      <div className="divider" onPointerDown={() => startDrag("left")} title="arrastrá para redimensionar" />
+      <div className="divider" onPointerDown={() => startDrag("left")} title={t("arrastrá para redimensionar", "drag to resize")} />
 
       <div className="center">
         <SearchBox inputRef={searchRef} onPick={onSearchPick} />
         {mode3d ? (
-          <Suspense fallback={<section className="canvas loading3d">cargando 3D…</section>}>
+          <Suspense fallback={<section className="canvas loading3d">{t("cargando 3D…", "loading 3D…")}</section>}>
             <Graph3D nodes={visibleNodes} edges={visibleEdges} nodeColor={nodeColor3d} edgeColor={edgeColor} labelLevel={labelLevel} onSelect={handleNodeClick} />
           </Suspense>
         ) : (
@@ -525,7 +526,7 @@ export default function App() {
         )}
       </div>
 
-      <div className="divider" onPointerDown={() => startDrag("right")} title="arrastrá para redimensionar" />
+      <div className="divider" onPointerDown={() => startDrag("right")} title={t("arrastrá para redimensionar", "drag to resize")} />
 
       <aside className="inspector">
         {selected ? (
@@ -535,18 +536,18 @@ export default function App() {
             <code>{selected.doc_id || selected.id}</code>
             <p>{selected.path_rel}</p>
             <div className="actions">
-              {selected.doc_id && <button onClick={() => setReaderDoc(selected.doc_id)}>Leer doc</button>}
-              {selected.doc_id && <button onClick={() => void openNeighbors(selected.doc_id!)}>Ver vecinos</button>}
-              {selected.kind === "project" && <button onClick={() => openProject(selected.project)}>Ver documentos</button>}
+              {selected.doc_id && <button onClick={() => setReaderDoc(selected.doc_id)}>{t("Leer doc", "Read document")}</button>}
+              {selected.doc_id && <button onClick={() => void openNeighbors(selected.doc_id!)}>{t("Ver vecinos", "View neighbors")}</button>}
+              {selected.kind === "project" && <button onClick={() => openProject(selected.project)}>{t("Ver documentos", "View documents")}</button>}
             </div>
           </>
         ) : (
-          <p className="empty">Click en un nodo para inspeccionarlo. <kbd>/</kbd> busca.</p>
+          <p className="empty">{t("Click en un nodo para inspeccionarlo.", "Click a node to inspect it.")} <kbd>/</kbd> {t("busca.", "searches.")}</p>
         )}
       </aside>
 
       {readerDoc && (
-        <Suspense fallback={<aside className="reader"><div className="loading">cargando lector…</div></aside>}>
+        <Suspense fallback={<aside className="reader"><div className="loading">{t("cargando lector…", "loading reader…")}</div></aside>}>
           <DocReader docId={readerDoc} onClose={() => setReaderDoc(null)} onNeighbors={(id) => { setReaderDoc(null); void openNeighbors(id); }} onWikilink={onWikilink} onOpenDoc={(id) => setReaderDoc(id)} />
         </Suspense>
       )}

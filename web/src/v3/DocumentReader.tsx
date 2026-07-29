@@ -4,6 +4,7 @@ import { Braces, ExternalLink, Network, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { request } from "./api";
 import type { DocPayload } from "./types";
+import { t } from "../i18n";
 
 type Heading = { id: string; label: string; level: number };
 
@@ -17,7 +18,7 @@ function withoutFrontmatter(body: string) {
 }
 
 function markdown(body: string): { html: string; headings: Heading[] } {
-  const noRemoteImages = body.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, "[$1 — imagen externa omitida]($2)");
+  const noRemoteImages = body.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, t("[$1 — imagen externa omitida]($2)", "[$1 — external image omitted]($2)"));
   const parsed = marked.parse(noRemoteImages, { async: false }) as string;
   const linked = parsed.replace(/\[\[([^\]<>|#]{1,160})\]\]/g, (_match, target: string) => {
     const safe = target.replace(/"/g, "&quot;");
@@ -32,7 +33,7 @@ function markdown(body: string): { html: string; headings: Heading[] } {
   const headings: Heading[] = [];
   const used = new Set<string>();
   container.querySelectorAll("h1,h2,h3").forEach((element, index) => {
-    const label = element.textContent?.trim() || `Sección ${index + 1}`;
+    const label = element.textContent?.trim() || `${t("Sección", "Section")} ${index + 1}`;
     let id = label.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 64) || `seccion-${index + 1}`;
     while (used.has(id)) id = `${id}-${index + 1}`;
@@ -101,32 +102,32 @@ export default function DocumentReader({
     }
   }
 
-  return <div className="v3-reader-backdrop" role="dialog" aria-modal="true" aria-label="Documento">
+  return <div className="v3-reader-backdrop" role="dialog" aria-modal="true" aria-label={t("Documento", "Document")}>
     <article className="v3-reader">
       <header className="v3-reader-head">
         <div>
-          <p className="v3-eyebrow">{doc ? `${doc.kind} · ${doc.project}` : "Documento"}</p>
+          <p className="v3-eyebrow">{doc ? `${doc.kind} · ${doc.project}` : t("Documento", "Document")}</p>
           <h1>{doc?.title || docId}</h1>
           <code>{docId}</code>
         </div>
         <div className="v3-icon-actions">
-          <button onClick={() => onNeighbors(docId)} title="Ver vecindario en el Atlas"><Network /><span>Vecindario</span></button>
-          <button onClick={() => window.open(`/doc?id=${encodeURIComponent(docId)}`, "_blank", "noopener,noreferrer")} title="Abrir JSON crudo"><Braces /><span>JSON</span></button>
-          <button ref={closeRef} onClick={onClose} title="Cerrar"><X /><span>Cerrar</span></button>
+          <button onClick={() => onNeighbors(docId)} title={t("Ver vecindario en el Atlas", "View neighborhood in the Atlas")}><Network /><span>{t("Vecindario", "Neighborhood")}</span></button>
+          <button onClick={() => window.open(`/doc?id=${encodeURIComponent(docId)}`, "_blank", "noopener,noreferrer")} title={t("Abrir JSON crudo", "Open raw JSON")}><Braces /><span>JSON</span></button>
+          <button ref={closeRef} onClick={onClose} title={t("Cerrar", "Close")}><X /><span>{t("Cerrar", "Close")}</span></button>
         </div>
       </header>
       {error && <div className="v3-notice error">{error}</div>}
       {!doc && !error && <div className="v3-skeleton tall" />}
       {doc && <div className="v3-reader-layout">
-        {rendered.headings.length > 1 && <nav className="v3-toc" aria-label="Índice del documento">
-          <p className="v3-eyebrow">En esta página</p>
+        {rendered.headings.length > 1 && <nav className="v3-toc" aria-label={t("Índice del documento", "Document contents")}>
+          <p className="v3-eyebrow">{t("En esta página", "On this page")}</p>
           {rendered.headings.map((heading) => <a key={heading.id} className={`level-${heading.level}`} href={`#${heading.id}`}>{heading.label}</a>)}
         </nav>}
         {isMarkdown(doc)
           ? <div className="v3-prose" onClick={onBodyClick} dangerouslySetInnerHTML={{ __html: rendered.html }} />
           : <pre className="v3-source-code"><code>{doc.body}</code></pre>}
       </div>}
-      <footer className="v3-reader-foot"><ExternalLink size={14} /> Documento servido desde el índice; abrir una fuente no toca el filesystem.</footer>
+      <footer className="v3-reader-foot"><ExternalLink size={14} /> {t("Documento servido desde el índice; abrir una fuente no toca el filesystem.", "Document served from the index; opening a source does not touch the filesystem.")}</footer>
     </article>
   </div>;
 }

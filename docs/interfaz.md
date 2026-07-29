@@ -58,6 +58,26 @@ VITE_LAB_STRUCTURAL_ONLY=1 npm run build:lab
 La restriccion de seguridad esta en el backend. La variable de Vite no se toma
 como control de acceso.
 
+## Idioma de la interfaz
+
+El frontend se compila en espanol por defecto. Para una instalacion cuya
+interfaz operativa deba estar en ingles, se fija el locale durante el build:
+
+```bash
+VITE_UI_LOCALE=en npm run build:all
+```
+
+La variable traduce la navegacion, los controles, estados, ayudas y mensajes de
+Atlas y Lab. No traduce los titulos, fragmentos ni cuerpos de los documentos:
+esos pertenecen al corpus y se muestran en su idioma original. El locale es una
+propiedad del bundle publicado, no una preferencia de sesion.
+
+Puede combinarse con el perfil estructural:
+
+```bash
+VITE_UI_LOCALE=en VITE_LAB_STRUCTURAL_ONLY=1 npm run build:all
+```
+
 ## Origenes separados
 
 Atlas y Lab suelen correr en puertos distintos. Los enlaces cruzados usan

@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import { formatDate, request } from "../api";
 import { useSession } from "../session";
 import type { Campaign, DirectorStatus } from "../types";
+import { t } from "../../i18n";
 
 function safeDigest(value: string) {
-  const noImages = value.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, "[$1 — imagen externa omitida]($2)");
+  const noImages = value.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, t("[$1 — imagen externa omitida]($2)", "[$1 — external image omitted]($2)"));
   return DOMPurify.sanitize(marked.parse(noImages, { async: false }) as string, {
     FORBID_TAGS: ["img", "iframe", "object", "style", "form", "input"],
     USE_PROFILES: { html: true },
@@ -58,7 +59,7 @@ export default function DirectorPage() {
     setMessage("");
     try {
       await mutate("/pg/director", { password });
-      setMessage("Solicitud encolada. El watcher iniciará el Director cuando corresponda.");
+      setMessage(t("Solicitud encolada. El watcher iniciará el Director cuando corresponda.", "Request queued. The watcher will start the Director when appropriate."));
       await refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -79,12 +80,12 @@ export default function DirectorPage() {
   }
 
   return <main className="v3-lab-page v3-director">
-    <header className="v3-page-head compact split"><div><p className="v3-eyebrow">Control plane</p><h1>Director autónomo</h1><p>Orquesta campañas y juicio; la promoción continúa siendo una decisión editorial del dueño.</p></div><div className={`v3-director-state ${status?.running ? "running" : "idle"}`}><Activity /><span><small>Estado</small><b>{status?.running ? "Corriendo" : "Inactivo"}</b></span></div></header>
+    <header className="v3-page-head compact split"><div><p className="v3-eyebrow">Control plane</p><h1>{t("Director autónomo", "Autonomous Director")}</h1><p>{t("Orquesta campañas y juicio; la promoción continúa siendo una decisión editorial del dueño.", "It orchestrates campaigns and judgment; promotion remains an editorial decision by the owner.")}</p></div><div className={`v3-director-state ${status?.running ? "running" : "idle"}`}><Activity /><span><small>{t("Estado", "Status")}</small><b>{status?.running ? t("Corriendo", "Running") : t("Inactivo", "Idle")}</b></span></div></header>
     <div className="v3-director-grid">
-      <section className="v3-director-control"><p className="v3-eyebrow"><Shield /> Operación privilegiada</p><h2>Solicitar un ciclo completo</h2><p>Este botón no ejecuta comandos ni publica hallazgos. Valida la contraseña y deja una solicitud de parámetros fijos para el watcher root.</p><form onSubmit={fire}><label><KeyRound /> Contraseña del Director<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="off" /></label><button className="v3-primary large" disabled={!password || busy || status?.running}><Play /> {busy ? "Encolando…" : status?.running ? "Director en ejecución" : "Encolar Director"}</button></form><div className="v3-quota"><Clock3 /><span>Cinco intentos por hora y diez minutos de cooldown entre solicitudes. La contraseña nunca se persiste.</span></div>{message && <div className="v3-notice success">{message}</div>}{error && <div className="v3-notice error">{error}</div>}</section>
-      <aside className="v3-digest-card"><p className="v3-eyebrow"><Sparkles /> Último digest</p>{status?.last_digest ? <><h2>{plainTitle(status.last_digest.veredicto || status.last_digest.title || "Digest disponible")}</h2><time>{formatDate(status.last_digest.mtime, true)}</time><button onClick={loadDigest}><FileText /> Leer digest</button></> : <div className="v3-empty">Todavía no se publicó un digest.</div>}<button className="quiet" onClick={refresh}><RefreshCw /> Actualizar estado</button></aside>
+      <section className="v3-director-control"><p className="v3-eyebrow"><Shield /> {t("Operación privilegiada", "Privileged operation")}</p><h2>{t("Solicitar un ciclo completo", "Request a complete cycle")}</h2><p>{t("Este botón no ejecuta comandos ni publica hallazgos. Valida la contraseña y deja una solicitud de parámetros fijos para el watcher root.", "This button neither executes commands nor publishes findings. It validates the password and leaves a fixed-parameter request for the root watcher.")}</p><form onSubmit={fire}><label><KeyRound /> {t("Contraseña del Director", "Director password")}<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="off" /></label><button className="v3-primary large" disabled={!password || busy || status?.running}><Play /> {busy ? t("Encolando…", "Queueing…") : status?.running ? t("Director en ejecución", "Director running") : t("Encolar Director", "Queue Director")}</button></form><div className="v3-quota"><Clock3 /><span>{t("Cinco intentos por hora y diez minutos de cooldown entre solicitudes. La contraseña nunca se persiste.", "Five attempts per hour and a ten-minute cooldown between requests. The password is never persisted.")}</span></div>{message && <div className="v3-notice success">{message}</div>}{error && <div className="v3-notice error">{error}</div>}</section>
+      <aside className="v3-digest-card"><p className="v3-eyebrow"><Sparkles /> {t("Último digest", "Latest digest")}</p>{status?.last_digest ? <><h2>{plainTitle(status.last_digest.veredicto || status.last_digest.title || t("Digest disponible", "Digest available"))}</h2><time>{formatDate(status.last_digest.mtime, true)}</time><button onClick={loadDigest}><FileText /> {t("Leer digest", "Read digest")}</button></> : <div className="v3-empty">{t("Todavía no se publicó un digest.", "No digest has been published yet.")}</div>}<button className="quiet" onClick={refresh}><RefreshCw /> {t("Actualizar estado", "Refresh status")}</button></aside>
     </div>
-    <section className="v3-campaign-history"><p className="v3-eyebrow">Historial de campañas</p><h2>Actividad del Director</h2>{campaigns.length === 0 ? <div className="v3-empty">Sin campañas registradas.</div> : <div>{campaigns.map((campaign) => <article key={campaign.id}><span className={`v3-status ${campaign.status}`}>{campaign.status}</span><b>#{campaign.id} · {campaign.name}</b><small>{campaign.owner} · {formatDate(campaign.created_at, true)}</small></article>)}</div>}</section>
-    {digest !== null && <section className="v3-digest-reader"><header><div><p className="v3-eyebrow">Digest más reciente</p><h2>Lectura editorial</h2></div><button onClick={() => setDigest(null)}>Cerrar</button></header><div className="v3-prose" dangerouslySetInnerHTML={{ __html: safeDigest(digest) }} /></section>}
+    <section className="v3-campaign-history"><p className="v3-eyebrow">{t("Historial de campañas", "Campaign history")}</p><h2>{t("Actividad del Director", "Director activity")}</h2>{campaigns.length === 0 ? <div className="v3-empty">{t("Sin campañas registradas.", "No recorded campaigns.")}</div> : <div>{campaigns.map((campaign) => <article key={campaign.id}><span className={`v3-status ${campaign.status}`}>{campaign.status}</span><b>#{campaign.id} · {campaign.name}</b><small>{campaign.owner} · {formatDate(campaign.created_at, true)}</small></article>)}</div>}</section>
+    {digest !== null && <section className="v3-digest-reader"><header><div><p className="v3-eyebrow">{t("Digest más reciente", "Latest digest")}</p><h2>{t("Lectura editorial", "Editorial reading")}</h2></div><button onClick={() => setDigest(null)}>{t("Cerrar", "Close")}</button></header><div className="v3-prose" dangerouslySetInnerHTML={{ __html: safeDigest(digest) }} /></section>}
   </main>;
 }

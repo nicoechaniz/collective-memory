@@ -1,4 +1,5 @@
 import type { Envelope } from "./types";
+import { UI_LOCALE } from "../i18n";
 
 export class ApiError extends Error {
   status: number;
@@ -38,7 +39,7 @@ export function serviceLink(service: "atlas" | "lab", path: string): string {
 }
 
 export function formatNumber(value: number): string {
-  return new Intl.NumberFormat("es-AR", {
+  return new Intl.NumberFormat(UI_LOCALE, {
     notation: value > 9999 ? "compact" : "standard",
     maximumFractionDigits: 1,
   }).format(value);
@@ -48,7 +49,7 @@ export function formatDate(value: string | number | null | undefined, includeTim
   if (!value) return "—";
   const date = typeof value === "number" ? new Date(value * 1000) : new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return new Intl.DateTimeFormat("es-AR", includeTime
+  return new Intl.DateTimeFormat(UI_LOCALE, includeTime
     ? { dateStyle: "short", timeStyle: "short" }
     : { dateStyle: "medium" }).format(date);
 }

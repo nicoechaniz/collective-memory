@@ -37,6 +37,11 @@ estructurales, sin LLM ni director:
 ./install.sh --root <dir-del-corpus> --structural-only
 ```
 
+Si se publican los bundles manualmente para una audiencia angloparlante, el
+frontend admite `VITE_UI_LOCALE=en`; puede combinarse con
+`VITE_LAB_STRUCTURAL_ONLY=1`. Ver [interfaz.md](interfaz.md) para el contrato de
+idioma y los comandos de build.
+
 **Donde poner el corpus.** No bajo `/home` ni `/root`: las unidades systemd traen
 `ProtectHome=yes`, que deja esos arboles vacios dentro del namespace, y los
 servicios no verian nada. El instalador lo rechaza con ese mensaje.

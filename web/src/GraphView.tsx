@@ -6,6 +6,7 @@ import louvain from "graphology-communities-louvain";
 import { createNodeBorderProgram } from "@sigma/node-border";
 import type { EdgeData, NodeData } from "./api";
 import { colorForProject, communityColor, edgeColor, sizeForKind } from "./colors";
+import { t } from "./i18n";
 import { communityNames, tierMap, type LabelLevel } from "./labels";
 
 const CURATED_BORDER = "#f4ead6";
@@ -263,11 +264,11 @@ export default function GraphView({ nodes, edges, needsLayout, view, communities
       <div className="canvas" ref={container} />
       <div className="clouds" ref={cloudsRef} />
       <div className="zoomctl">
-        <button title="acercar" onClick={() => zoom(1)}>+</button>
-        <button title="alejar" onClick={() => zoom(-1)}>−</button>
-        <button title="reencuadrar todo (o doble clic en el fondo)" className="fitbtn"
+        <button title={t("acercar", "zoom in")} onClick={() => zoom(1)}>+</button>
+        <button title={t("alejar", "zoom out")} onClick={() => zoom(-1)}>−</button>
+        <button title={t("reencuadrar todo (o doble clic en el fondo)", "fit all (or double-click the background)")} className="fitbtn"
                 onClick={() => sigmaRef.current?.getCamera().animatedReset({ duration: 300 })}>
-          ⤢ ajustar
+          ⤢ {t("ajustar", "fit")}
         </button>
       </div>
     </section>

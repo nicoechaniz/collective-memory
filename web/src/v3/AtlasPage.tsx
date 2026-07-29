@@ -1,6 +1,7 @@
 import { Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { queryParams } from "./router";
+import { t } from "../i18n";
 
 function editable(target: EventTarget | null) {
   const element = target as HTMLElement | null;
@@ -35,8 +36,8 @@ export default function AtlasPage({ immersive, setImmersive }: { immersive: bool
     };
   }, [immersive, setImmersive]);
 
-  return <section className="v3-atlas" aria-label="Atlas visual completo">
-    <iframe ref={iframe} title="Atlas completo de Memoria Colectiva" src={src} loading="eager" />
-    <button className="v3-immersive-toggle" onClick={() => setImmersive(!immersive)} title={immersive ? "Salir del modo inmersivo (F o Esc)" : "Usar todo el viewport (F)"}>{immersive ? <Minimize2 /> : <Maximize2 />}<span>{immersive ? "Salir" : "Inmersivo"}</span></button>
+  return <section className="v3-atlas" aria-label={t("Atlas visual completo", "Complete visual Atlas")}>
+    <iframe ref={iframe} title={t("Atlas completo de Memoria Colectiva", "Complete Collective Memory Atlas")} src={src} loading="eager" />
+    <button className="v3-immersive-toggle" onClick={() => setImmersive(!immersive)} title={immersive ? t("Salir del modo inmersivo (F o Esc)", "Exit immersive mode (F or Esc)") : t("Usar todo el viewport (F)", "Use the full viewport (F)")}>{immersive ? <Minimize2 /> : <Maximize2 />}<span>{immersive ? t("Salir", "Exit") : t("Inmersivo", "Immersive")}</span></button>
   </section>;
 }

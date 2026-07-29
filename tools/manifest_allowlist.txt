@@ -66,6 +66,7 @@ COPY    web/src/colors.ts               web/src/colors.ts
 COPY    web/src/DocReader.tsx           web/src/DocReader.tsx
 COPY    web/src/Graph3D.tsx             web/src/Graph3D.tsx
 COPY    web/src/GraphView.tsx           web/src/GraphView.tsx
+AUTHOR  -                               web/src/i18n.ts
 COPY    web/src/labels.ts               web/src/labels.ts
 COPY    web/src/main.tsx                web/src/main.tsx
 COPY    web/src/SearchBox.tsx           web/src/SearchBox.tsx

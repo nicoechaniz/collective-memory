@@ -1,3 +1,5 @@
+import { t } from "./i18n";
+
 // Colores deterministas: mismo proyecto → mismo color, siempre (hash del nombre, no orden de llegada).
 
 function hashInt(s: string): number {
@@ -33,14 +35,14 @@ export function edgeColor(type: string): string {
 export const EDGE_TYPE_LABELS: Record<string, string> = {
   wikilink: "wikilink",
   source_of: "source",
-  semantic_neighbor: "semántico",
-  inter_project: "inter-proyecto",
-  contains: "contiene",
-  duplicate_of: "duplicado",
-  challenges: "contraevidencia",
-  bridges: "puente",
-  flags_freshness: "frescura",
-  analogizes: "analogía",
+  semantic_neighbor: t("semántico", "semantic"),
+  inter_project: t("inter-proyecto", "cross-project"),
+  contains: t("contiene", "contains"),
+  duplicate_of: t("duplicado", "duplicate"),
+  challenges: t("contraevidencia", "counter-evidence"),
+  bridges: t("puente", "bridge"),
+  flags_freshness: t("frescura", "freshness"),
+  analogizes: t("analogía", "analogy"),
 };
 
 export function sizeForKind(kind: string, degree: number): number {

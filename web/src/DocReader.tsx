@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { getJson, type DocPayload } from "./api";
+import { t } from "./i18n";
 
 const MD_KINDS = new Set(["map", "discovery", "synthesis", "biblioteca", "source", "fs_doc"]);
 
@@ -101,7 +102,7 @@ export default function DocReader({ docId, onClose, onNeighbors, onWikilink, onO
     <aside className="reader" style={{ width }}>
       <div
         className="reader-handle"
-        title="arrastrá para redimensionar"
+        title={t("arrastrá para redimensionar", "drag to resize")}
         onPointerDown={() => {
           dragging.current = true;
           document.body.style.cursor = "col-resize";
@@ -110,14 +111,14 @@ export default function DocReader({ docId, onClose, onNeighbors, onWikilink, onO
       />
       <header>
         <div>
-          <p className="eyebrow">{doc ? `${doc.kind} · ${doc.project}` : "cargando…"}</p>
+          <p className="eyebrow">{doc ? `${doc.kind} · ${doc.project}` : t("cargando…", "loading…")}</p>
           <h2>{doc?.title || docId}</h2>
           <code>{docId}</code>
         </div>
         <div className="reader-actions">
-          <button onClick={() => onNeighbors(docId)} title="ver vecinos en el grafo">◉ vecinos</button>
-          <button onClick={() => window.open(`/doc?id=${encodeURIComponent(docId)}`, "_blank", "noopener")} title="JSON crudo">crudo</button>
-          <button onClick={onClose} title="cerrar (Esc)">✕</button>
+          <button onClick={() => onNeighbors(docId)} title={t("ver vecinos en el grafo", "view neighbors in graph")}>◉ {t("vecinos", "neighbors")}</button>
+          <button onClick={() => window.open(`/doc?id=${encodeURIComponent(docId)}`, "_blank", "noopener")} title={t("JSON crudo", "raw JSON")}>{t("crudo", "raw")}</button>
+          <button onClick={onClose} title={t("cerrar (Esc)", "close (Esc)")}>✕</button>
         </div>
       </header>
       {error && <div className="error">{error}</div>}

@@ -4,6 +4,7 @@ import { startTransition, useEffect, useState } from "react";
 import { formatDate, formatNumber, v2 } from "./api";
 import { navigate, queryParams } from "./router";
 import type { Bootstrap, DocMeta, Manifest, SearchHit } from "./types";
+import { t, UI_LOCALE } from "../i18n";
 
 function plainSnippet(value: string) {
   const clean = String(DOMPurify.sanitize(value || "", { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }));
@@ -47,7 +48,7 @@ export function SearchPage({ bootstrap, manifest, onDoc }: {
       const result = await v2<{ mode: string; query: string; results: SearchHit[] }>(`/search?${url}`);
       startTransition(() => {
         setHits(result.data.results);
-        setMode(result.data.mode || "desconocido");
+        setMode(result.data.mode || t("desconocido", "unknown"));
         setOffset(nextOffset);
       });
     } catch (reason) {
@@ -69,20 +70,20 @@ export function SearchPage({ bootstrap, manifest, onDoc }: {
 
   const rawProjects = manifest?.projects.slice().sort((a, b) => a.project.localeCompare(b.project)) || [];
   return <section className="v3-content-page">
-    <header className="v3-page-head compact"><p className="v3-eyebrow">Consulta transversal</p><h1>Buscá una idea, no una carpeta.</h1><p>Texto completo y vecindad semántica, con procedencia visible.</p></header>
+    <header className="v3-page-head compact"><p className="v3-eyebrow">{t("Consulta transversal", "Cross-cutting search")}</p><h1>{t("Buscá una idea, no una carpeta.", "Search for an idea, not a folder.")}</h1><p>{t("Texto completo y vecindad semántica, con procedencia visible.", "Full text and semantic neighborhoods, with visible provenance.")}</p></header>
     <form className="v3-searchbar" onSubmit={submit}>
       <Search aria-hidden="true" />
-      <input value={query} onChange={(event) => setQuery(event.target.value)} maxLength={512} placeholder="¿Qué relación, concepto o problema querés encontrar?" autoFocus />
-      <button className="v3-primary" disabled={!query.trim() || busy}>{busy ? "Buscando…" : "Buscar"}</button>
+      <input value={query} onChange={(event) => setQuery(event.target.value)} maxLength={512} placeholder={t("¿Qué relación, concepto o problema querés encontrar?", "What relationship, concept, or problem do you want to find?")} autoFocus />
+      <button className="v3-primary" disabled={!query.trim() || busy}>{busy ? t("Buscando…", "Searching…") : t("Buscar", "Search")}</button>
     </form>
-    <details className="v3-filter-disclosure" open={Boolean(project || kind)}><summary><Filter /> Afinar consulta</summary>
+    <details className="v3-filter-disclosure" open={Boolean(project || kind)}><summary><Filter /> {t("Afinar consulta", "Refine search")}</summary>
       <div className="v3-filter-row">
-        <label>Proyecto<select value={project} onChange={(event) => setProject(event.target.value)}><option value="">Todos</option>{rawProjects.map((item) => <option key={item.slug} value={item.project}>{item.project}</option>)}</select></label>
-        <label>Clase<select value={kind} onChange={(event) => setKind(event.target.value)}><option value="">Todas</option>{Object.keys(bootstrap.counts_by_kind).sort().map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label>Resultados<select value={limit} onChange={(event) => setLimit(Number(event.target.value))}><option>20</option><option>40</option><option>80</option></select></label>
+        <label>{t("Proyecto", "Project")}<select value={project} onChange={(event) => setProject(event.target.value)}><option value="">{t("Todos", "All")}</option>{rawProjects.map((item) => <option key={item.slug} value={item.project}>{item.project}</option>)}</select></label>
+        <label>{t("Clase", "Class")}<select value={kind} onChange={(event) => setKind(event.target.value)}><option value="">{t("Todas", "All")}</option>{Object.keys(bootstrap.counts_by_kind).sort().map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label>{t("Resultados", "Results")}<select value={limit} onChange={(event) => setLimit(Number(event.target.value))}><option>20</option><option>40</option><option>80</option></select></label>
       </div>
     </details>
-    {mode && <div className="v3-query-status"><span>Modo de esta consulta</span><b>{mode}</b><span>{bootstrap.system.vectorized_docs.toLocaleString("es-AR")} documentos vectorizados en el índice</span></div>}
+    {mode && <div className="v3-query-status"><span>{t("Modo de esta consulta", "Search mode")}</span><b>{mode}</b><span>{bootstrap.system.vectorized_docs.toLocaleString(UI_LOCALE)} {t("documentos vectorizados en el índice", "vectorized documents in the index")}</span></div>}
     {error && <div className="v3-notice error">{error}</div>}
     <div className="v3-results" aria-busy={busy}>{busy ? <div className="v3-skeleton tall" /> : hits.map((hit, index) => <button key={`${hit.doc_id}-${index}`} onClick={() => onDoc(hit.doc_id)}>
       <span className="v3-result-rank">{String(offset + index + 1).padStart(2, "0")}</span>
@@ -138,20 +139,20 @@ export function ArchivePage({ bootstrap, onDoc }: { bootstrap: Bootstrap; onDoc:
   }
 
   return <section className="v3-content-page">
-    <header className="v3-page-head compact"><p className="v3-eyebrow">Recorrido documental</p><h1>El archivo, sin perder contexto.</h1><p>{formatNumber(total || bootstrap.system.total_docs)} documentos alcanzables desde una misma mesa de lectura.</p></header>
+    <header className="v3-page-head compact"><p className="v3-eyebrow">{t("Recorrido documental", "Document exploration")}</p><h1>{t("El archivo, sin perder contexto.", "The archive, without losing context.")}</h1><p>{formatNumber(total || bootstrap.system.total_docs)} {t("documentos alcanzables desde una misma mesa de lectura.", "documents accessible from a single reading desk.")}</p></header>
     <form className="v3-archive-tools" onSubmit={submit}>
-      <label className="wide">Título o ruta<input value={filters.q} onChange={(event) => setFilters({ ...filters, q: event.target.value })} maxLength={160} placeholder="paper, src/audio, informe…" /></label>
-      <label>Proyecto<select value={filters.project} onChange={(event) => setFilters({ ...filters, project: event.target.value })}><option value="">Todos</option>{bootstrap.projects.map((item) => <option key={item.project_id} value={item.project_id}>{item.title.replace(/ — .*/, "")}</option>)}</select></label>
-      <label>Abstracción<select value={filters.abstraction} onChange={(event) => setFilters({ ...filters, abstraction: event.target.value })}><option value="">Todas</option>{Object.keys(bootstrap.counts_by_abstraction).sort().map((item) => <option key={item}>{item}</option>)}</select></label>
-      <label>Clase<select value={filters.kind} onChange={(event) => setFilters({ ...filters, kind: event.target.value })}><option value="">Todas</option>{Object.keys(bootstrap.counts_by_kind).sort().map((item) => <option key={item}>{item}</option>)}</select></label>
-      <label>Prefijo<input value={filters.prefix} onChange={(event) => setFilters({ ...filters, prefix: event.target.value })} placeholder="proyecto/docs" /></label>
-      <button className="v3-primary"><Filter /> Aplicar</button>
+      <label className="wide">{t("Título o ruta", "Title or path")}<input value={filters.q} onChange={(event) => setFilters({ ...filters, q: event.target.value })} maxLength={160} placeholder={t("paper, src/audio, informe…", "paper, src/audio, report…")} /></label>
+      <label>{t("Proyecto", "Project")}<select value={filters.project} onChange={(event) => setFilters({ ...filters, project: event.target.value })}><option value="">{t("Todos", "All")}</option>{bootstrap.projects.map((item) => <option key={item.project_id} value={item.project_id}>{item.title.replace(/ — .*/, "")}</option>)}</select></label>
+      <label>{t("Abstracción", "Abstraction")}<select value={filters.abstraction} onChange={(event) => setFilters({ ...filters, abstraction: event.target.value })}><option value="">{t("Todas", "All")}</option>{Object.keys(bootstrap.counts_by_abstraction).sort().map((item) => <option key={item}>{item}</option>)}</select></label>
+      <label>{t("Clase", "Class")}<select value={filters.kind} onChange={(event) => setFilters({ ...filters, kind: event.target.value })}><option value="">{t("Todas", "All")}</option>{Object.keys(bootstrap.counts_by_kind).sort().map((item) => <option key={item}>{item}</option>)}</select></label>
+      <label>{t("Prefijo", "Prefix")}<input value={filters.prefix} onChange={(event) => setFilters({ ...filters, prefix: event.target.value })} placeholder="project/docs" /></label>
+      <button className="v3-primary"><Filter /> {t("Aplicar", "Apply")}</button>
     </form>
-    <div className="v3-table-summary"><Archive /> <b>{formatNumber(total)}</b> coincidencias <span>· {offset + 1}–{Math.min(offset + docs.length, total)}</span></div>
+    <div className="v3-table-summary"><Archive /> <b>{formatNumber(total)}</b> {t("coincidencias", "matches")} <span>· {offset + 1}–{Math.min(offset + docs.length, total)}</span></div>
     {error && <div className="v3-notice error">{error}</div>}
     <div className="v3-file-table" role="table" aria-busy={busy}>{busy ? <div className="v3-skeleton tall" /> : docs.map((doc) => <button role="row" key={doc.doc_id} onClick={() => onDoc(doc.doc_id)}>
       <FileText /><span className={`v3-level ${doc.abstraction}`}>{doc.abstraction}</span><b>{doc.title}</b><code>{doc.path_rel}</code><span>{doc.kind}</span><time>{formatDate(doc.mtime)}</time>
     </button>)}</div>
-    <nav className="v3-pagination" aria-label="Paginación"><button disabled={offset === 0 || busy} onClick={() => load(filters, Math.max(0, offset - pageSize), true)}><ChevronLeft /> Anterior</button><span>Página {Math.floor(offset / pageSize) + 1} de {Math.max(1, Math.ceil(total / pageSize))}</span><button disabled={offset + docs.length >= total || busy} onClick={() => load(filters, offset + pageSize, true)}>Siguiente <ChevronRight /></button></nav>
+    <nav className="v3-pagination" aria-label={t("Paginación", "Pagination")}><button disabled={offset === 0 || busy} onClick={() => load(filters, Math.max(0, offset - pageSize), true)}><ChevronLeft /> {t("Anterior", "Previous")}</button><span>{t("Página", "Page")} {Math.floor(offset / pageSize) + 1} {t("de", "of")} {Math.max(1, Math.ceil(total / pageSize))}</span><button disabled={offset + docs.length >= total || busy} onClick={() => load(filters, offset + pageSize, true)}>{t("Siguiente", "Next")} <ChevronRight /></button></nav>
   </section>;
 }

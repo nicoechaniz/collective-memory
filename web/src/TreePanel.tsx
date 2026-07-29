@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getJson, type TreeNode, type TreePayload } from "./api";
 import { colorForProject } from "./colors";
+import { t } from "./i18n";
 
 type Props = { onOpenDoc: (docId: string) => void };
 
@@ -60,13 +61,13 @@ export default function TreePanel({ onOpenDoc }: Props) {
   return (
     <div className="tree-panel">
       {error && <div className="error">{error}</div>}
-      {!tree && !error && <div className="loading">cargando árbol…</div>}
+      {!tree && !error && <div className="loading">{t("cargando árbol…", "loading tree…")}</div>}
       {roots.map((r) => (
         <TreeRow key={r.id} node={r} childrenIndex={childrenIndex} onOpenDoc={onOpenDoc} depth={0} />
       ))}
       {tree && Object.keys(tree.excluded_summary || {}).length > 0 && (
         <details className="tree-excluded">
-          <summary>excluidos del índice{tree.excluded_summary_stale ? " (dato viejo)" : ""}</summary>
+          <summary>{t("excluidos del índice", "excluded from the index")}{tree.excluded_summary_stale ? t(" (dato viejo)", " (stale data)") : ""}</summary>
           <ul>
             {Object.entries(tree.excluded_summary).map(([reason, n]) => (
               <li key={reason}>{reason}: {n}</li>

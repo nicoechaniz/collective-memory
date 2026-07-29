@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { getJson, type SearchResult } from "./api";
 import { colorForProject } from "./colors";
+import { t } from "./i18n";
 
 type Props = {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -78,7 +79,7 @@ export default function SearchBox({ inputRef, onPick }: Props) {
       <input
         ref={inputRef}
         type="search"
-        placeholder="Buscar en la memoria…  ( / )"
+        placeholder={t("Buscar en la memoria…  ( / )", "Search the memory…  ( / )")}
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => results.length && setOpen(true)}
@@ -89,15 +90,15 @@ export default function SearchBox({ inputRef, onPick }: Props) {
         <ul className="search-results">
           {results.map((r, i) => (
             <li key={r.doc_id + i} className={i === cursor ? "cursor" : ""}>
-              <button className="hit" onClick={() => pick(r, "focus")} title="enfocar en el grafo / abrir">
+              <button className="hit" onClick={() => pick(r, "focus")} title={t("enfocar en el grafo / abrir", "focus in graph / open")}>
                 <i style={{ background: colorForProject(r.project) }} />
                 <span className="hit-title">{r.title}</span>
                 <span className="hit-meta">{r.kind} · {r.project}</span>
                 {r.snippet && <span className="hit-snippet">{r.snippet.replace(/»|«/g, "")}</span>}
               </button>
               <span className="hit-actions">
-                <button title="leer documento" onClick={() => pick(r, "doc")}>📄</button>
-                <button title="ver vecinos" onClick={() => pick(r, "neighbors")}>◉</button>
+                <button title={t("leer documento", "read document")} onClick={() => pick(r, "doc")}>📄</button>
+                <button title={t("ver vecinos", "view neighbors")} onClick={() => pick(r, "neighbors")}>◉</button>
               </span>
             </li>
           ))}
