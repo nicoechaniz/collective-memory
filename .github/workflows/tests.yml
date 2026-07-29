@@ -29,17 +29,17 @@ jobs:
       - name: compilacion de los modulos
         run: python3 -m compileall -q mapa tools
 
-      - name: proyeccion y API V3
+      - name: proyeccion y API de interfaz
         run: |
           python3 tests/test_ui_v2.py
           python3 tests/test_structural_mode.py
 
-      - name: frontend V1/V3
+      - name: frontend actual
         working-directory: web
         run: |
           npm ci
           npm run build:all
-          VITE_LAB_STRUCTURAL_ONLY=1 npm run build:v3:lab
+          VITE_LAB_STRUCTURAL_ONLY=1 npm run build:lab
 
       # test_inyeccion_indirecta.py NO corre aca: necesita un runtime de modelo
       # local con GPU. Es un test de integracion manual (ver docs/operacion.md).

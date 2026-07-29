@@ -42,8 +42,6 @@ STRUCTURAL_ONLY = os.environ.get("MAPA_STRUCTURAL_ONLY", "0") == "1"
 STRUCTURAL_OPERATORS = ("latent_bridge", "cluster_frontier", "outlier")
 USERS_PATH = os.path.join(DMAPA, "discovery", "users.json")
 LAB_DIST = os.path.join(DMAPA, "web", "dist-lab")
-LAB_V2_DIST = os.path.join(DMAPA, "web", "dist-v2-lab")
-LAB_V3_DIST = os.path.join(DMAPA, "web", "dist-v3-lab")
 UI_LINK = os.path.join(DMAPA, "ui")
 Q_MAX = 512
 BODY_MAX = 16 * 1024
@@ -383,12 +381,8 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         qs = parse_qs(u.query)
         try:
-            if u.path == "/lab-v3" or u.path.startswith("/lab-v3/"):
-                return _static(self, LAB_V3_DIST, "/lab-v3/", spa=True, index="v3-lab.html")
-            if u.path == "/lab-v2" or u.path.startswith("/lab-v2/"):
-                return _static(self, LAB_V2_DIST, "/lab-v2/", spa=True, index="v2-lab.html")
             if u.path == "/lab" or u.path.startswith("/lab/"):
-                return _static(self, LAB_DIST, "/lab/", spa=True, index="lab.html")
+                return _static(self, LAB_DIST, "/lab/", spa=True, index="v3-lab.html")
             if u.path == "/pg/health":
                 con = pq.open_jobs()
                 jobs = dict(con.execute("SELECT status, count(*) FROM jobs GROUP BY status").fetchall())
@@ -425,6 +419,8 @@ class Handler(BaseHTTPRequestHandler):
                 return _send(self, code, obj)
             if u.path.startswith("/ui/"):
                 return self._handle_ui(u, qs)
+            if not u.path.startswith("/pg/"):
+                return _send(self, 404, {"error": "not found"})
             # --- autenticado de acá para abajo ---
             identity = self._identity()
             user = identity.get("user")

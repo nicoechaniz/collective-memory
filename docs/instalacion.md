@@ -22,11 +22,12 @@ primero, porque varios no son obvios:
 ```
 
 Esto crea un entorno virtual, instala las dependencias, descarga el modelo de
-embeddings una unica vez, escribe la configuracion y compila Atlas y Lab V1/V3. No pide
+embeddings una unica vez, escribe la configuracion y compila el Atlas, su motor
+grafico y el Lab actuales. No pide
 privilegios ni toca systemd.
 
 Los bundles se publican como un release bajo `$MAPA_DATA/web/releases/` y cuatro
-symlinks (`dist`, `dist-lab`, `dist-v3-atlas`, `dist-v3-lab`) cambian solo cuando
+symlinks (`dist-atlas`, `dist-atlas-graph`, `dist-lab`) cambian solo cuando
 todos los builds terminaron. Un fallo de frontend no pisa la version anterior.
 
 Para una demostracion que permita explorar y ejecutar solo descubrimientos
@@ -82,7 +83,7 @@ La primera indexacion de un corpus grande tarda: con GPU, minutos; sin GPU,
 bastante mas. Despues es incremental (solo lo que cambio de hash).
 
 Para probar sin material propio: [../examples/README.md](../examples/README.md).
-La operacion y las rutas de la interfaz V3 estan en [interfaz-v3.md](interfaz-v3.md).
+La operacion y las rutas de la interfaz estan en [interfaz.md](interfaz.md).
 
 ## Actualizar
 

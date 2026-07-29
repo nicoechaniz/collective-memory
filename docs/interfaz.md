@@ -1,15 +1,15 @@
-# Interfaz V3
+# Interfaz actual
 
-La V3 organiza la lectura y el descubrimiento en dos superficies separadas:
+La interfaz organiza la lectura y el descubrimiento en dos superficies separadas:
 
-- **Atlas** (`/atlas-v3/`): grafo 3D inmersivo, filtros por proyecto y tipo de
+- **Atlas** (`/atlas/`): grafo 3D inmersivo, filtros por proyecto y tipo de
   relacion, busqueda, archivo y lector de documentos.
-- **Lab** (`/lab-v3/descubrir`): campañas, bandeja privada, evidencia y, en el
+- **Lab** (`/lab/descubrir`): campañas, bandeja privada, evidencia y, en el
   perfil completo, director.
 
-Las interfaces V1 siguen disponibles en `/atlas/` y `/lab/`. El Atlas V3
-reutiliza el grafo 3D de V1, que conserva su comportamiento de nubes dinamicas,
-pero lo integra con navegacion y lectura mas claras.
+No se sirven versiones anteriores ni rutas versionadas. El motor 3D que conserva
+el comportamiento de nubes dinamicas vive como componente interno en
+`/atlas/graph/`, integrado con la navegacion y lectura actuales.
 
 ## Proyeccion visual
 
@@ -52,7 +52,7 @@ El bundle Lab debe compilarse con la misma intencion para que la interfaz lo
 explique y no muestre controles inutiles:
 
 ```bash
-VITE_LAB_STRUCTURAL_ONLY=1 npm run build:v3:lab
+VITE_LAB_STRUCTURAL_ONLY=1 npm run build:lab
 ```
 
 La restriccion de seguridad esta en el backend. La variable de Vite no se toma
@@ -66,7 +66,7 @@ Atlas y Lab suelen correr en puertos distintos. Los enlaces cruzados usan
 ```bash
 VITE_ATLAS_ORIGIN=http://host-privado:8899 \
 VITE_LAB_ORIGIN=http://host-privado:8898 \
-npm run build:v3
+npm run build:all
 ```
 
 Esto es obligatorio cuando una instalacion aislada convive en el mismo host con

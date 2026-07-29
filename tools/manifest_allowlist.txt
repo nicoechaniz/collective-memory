@@ -50,14 +50,12 @@ COPY    librarian.md                    prompts/librarian.md
 
 # ---------- frontend ----------
 COPY    web/index.html                  web/index.html
-COPY    web/lab.html                    web/lab.html
 COPY    web/layout.mjs                  web/layout.mjs
 COPY    web/shot.mjs                    web/shot.mjs
 AUTHOR  -                               web/package.json
 AUTHOR  -                               web/package-lock.json
 COPY    web/tsconfig.json               web/tsconfig.json
 COPY    web/vite.config.ts              web/vite.config.ts
-COPY    web/vite.lab.config.ts          web/vite.lab.config.ts
 AUTHOR  -                               web/v3-atlas.html
 AUTHOR  -                               web/v3-lab.html
 AUTHOR  -                               web/vite.v3.atlas.config.ts
@@ -74,8 +72,6 @@ COPY    web/src/SearchBox.tsx           web/src/SearchBox.tsx
 COPY    web/src/StatsPanel.tsx          web/src/StatsPanel.tsx
 AUTHOR  -                               web/src/styles.css
 COPY    web/src/TreePanel.tsx           web/src/TreePanel.tsx
-AUTHOR  -                               web/src/lab/LabApp.tsx
-COPY    web/src/lab/main.tsx            web/src/lab/main.tsx
 AUTHOR  -                               web/src/v3/App.tsx
 AUTHOR  -                               web/src/v3/AtlasPage.tsx
 AUTHOR  -                               web/src/v3/DocumentReader.tsx
@@ -126,7 +122,7 @@ AUTHOR  -                               docs/arquitectura.md
 AUTHOR  -                               docs/instalacion.md
 AUTHOR  -                               docs/operacion.md
 AUTHOR  -                               docs/seguridad.md
-AUTHOR  -                               docs/interfaz-v3.md
+AUTHOR  -                               docs/interfaz.md
 AUTHOR  -                               README.md
 AUTHOR  -                               LICENSE
 AUTHOR  -                               requirements.txt
@@ -143,4 +139,4 @@ AUTHOR  -                               examples/corpus/**
 # Cada una acotada a path + reglas. NO aflojar reglas globalmente.
 EXCEPT  web/package-lock.json           rules=3,5   # nombres de terceros e integrity sha512
 EXCEPT  tests/test_safe_bind.py         rules=2     # necesita literales públicos reales como fixture
-EXCEPT  web/src/v3/App.tsx              rules=1     # rutas URL internas /atlas-v3 y /lab-v3, no paths del host
+EXCEPT  web/src/v3/App.tsx              rules=1     # rutas URL internas /atlas y /lab, no paths del host

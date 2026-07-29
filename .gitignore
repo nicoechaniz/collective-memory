@@ -21,10 +21,9 @@ venv/
 __pycache__/
 *.py[cod]
 node_modules/
-dist/
+dist-atlas/
+dist-atlas-graph/
 dist-lab/
-dist-v3-atlas/
-dist-v3-lab/
 
 # Credenciales: no deberian existir en el arbol, pero por si acaso.
 *-config/

@@ -34,6 +34,7 @@ ReadOnlyPaths=@MAPA_DATA@
 ReadOnlyPaths=@CODE_HOME@
 RuntimeDirectory=mapa
 RuntimeDirectoryMode=0770
+RuntimeDirectoryPreserve=yes
 ReadWritePaths=/run/mapa
 
 # --- filtro de red: LA garantia de no-exposicion ---

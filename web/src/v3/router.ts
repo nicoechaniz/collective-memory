@@ -18,7 +18,7 @@ export function useLocationKey() {
 }
 
 export function routeFor(mode: "atlas" | "lab"): Route {
-  const base = mode === "atlas" ? "/atlas-v3" : "/lab-v3";
+  const base = mode === "atlas" ? "/atlas" : "/lab";
   const tail = window.location.pathname.slice(base.length).replace(/^\/+|\/+$/g, "");
   const allowed = mode === "atlas"
     ? new Set<AtlasRoute>(["atlas", "buscar", "archivo"])
@@ -28,7 +28,7 @@ export function routeFor(mode: "atlas" | "lab"): Route {
 }
 
 export function navigate(mode: "atlas" | "lab", route: Route, params?: URLSearchParams, replace = false) {
-  const base = mode === "atlas" ? "/atlas-v3" : "/lab-v3";
+  const base = mode === "atlas" ? "/atlas" : "/lab";
   const path = route === "atlas" ? `${base}/` : `${base}/${route}`;
   const query = params?.toString();
   window.history[replace ? "replaceState" : "pushState"]({}, "", query ? `${path}?${query}` : path);

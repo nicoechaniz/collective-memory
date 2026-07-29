@@ -175,13 +175,13 @@ git clone https://github.com/Mar-IA-no/collective-memory && cd collective-memory
 export MAPA_ROOT=/path/to/your/corpus
 <venv>/bin/python <code-home>/tier1.py index --scope total
 <venv>/bin/python <code-home>/tier1.py search "your query"
-<venv>/bin/python <code-home>/serve.py        # V3 atlas at http://127.0.0.1:8899/atlas-v3/
+<venv>/bin/python <code-home>/serve.py        # atlas at http://127.0.0.1:8899/atlas/
 ```
 
-The V3 interface keeps the original graph explorer available at `/atlas/`, and
-adds `/atlas-v3/` (atlas, search, archive) plus `/lab-v3/descubrir` (discovery,
-review and evidence). See [`docs/interfaz-v3.md`](docs/interfaz-v3.md) for the
-full and structural-only deployment profiles.
+The current interface lives at `/atlas/` (atlas, search, archive) and
+`/lab/descubrir` (discovery, review and evidence). There are no parallel
+versioned routes. See [`docs/interfaz.md`](docs/interfaz.md) for the full
+and structural-only deployment profiles.
 
 Try it with no material of your own — there's a synthetic corpus built to show the semantic layer surfacing a latent connection:
 

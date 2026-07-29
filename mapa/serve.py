@@ -29,9 +29,8 @@ PRELOAD_MODEL = os.environ.get("MAPA_PRELOAD_MODEL", "0") == "1"
 UNLOAD_AFTER_SEARCH = os.environ.get("MAPA_UNLOAD_AFTER_SEARCH", "0") == "1"
 SERVE_VECTOR = os.environ.get("MAPA_SERVE_VECTOR", "0") == "1"
 _sem = threading.Semaphore(4)                        # límite de concurrencia
-WEB_DIST = os.path.join(DMAPA, "web", "dist")
-WEB_V2_DIST = os.path.join(DMAPA, "web", "dist-v2-atlas")
-WEB_V3_DIST = os.path.join(DMAPA, "web", "dist-v3-atlas")
+WEB_DIST = os.path.join(DMAPA, "web", "dist-atlas")
+GRAPH_DIST = os.path.join(DMAPA, "web", "dist-atlas-graph")
 QUARTZ_PUBLIC = os.path.join(DMAPA, "quartz", "public")
 UI_LINK = os.path.join(DMAPA, "ui")
 UI_STATUS = os.path.join(DMAPA, "ui_status.json")
@@ -178,12 +177,10 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         qs = parse_qs(u.query)
         try:
-            if u.path == "/atlas-v3" or u.path.startswith("/atlas-v3/"):
-                return _static(self, WEB_V3_DIST, "/atlas-v3/", spa=True, index="v3-atlas.html")
-            if u.path == "/atlas-v2" or u.path.startswith("/atlas-v2/"):
-                return _static(self, WEB_V2_DIST, "/atlas-v2/", spa=True, index="v2-atlas.html")
+            if u.path == "/atlas/graph" or u.path.startswith("/atlas/graph/"):
+                return _static(self, GRAPH_DIST, "/atlas/graph/", spa=True)
             if u.path == "/atlas" or u.path.startswith("/atlas/"):
-                return _static(self, WEB_DIST, "/atlas/", spa=True)
+                return _static(self, WEB_DIST, "/atlas/", spa=True, index="v3-atlas.html")
             if u.path == "/wiki" or u.path.startswith("/wiki/"):
                 if not os.path.isdir(QUARTZ_PUBLIC):
                     return _send_html(self, 503, "Quartz mirror not built", "Quartz mirror not built.")
@@ -200,9 +197,7 @@ class Handler(BaseHTTPRequestHandler):
                     "endpoints": {
                         "GET /search?q=&k=&kind=&project=": "busqueda read-only (q<=512 chars, k<=50; kind/project opcionales)",
                         "GET /doc?id=<doc_id>": "markdown completo de un doc (doc_id viene de /search)",
-                        "GET /atlas/": "atlas visual read-only",
-                        "GET /atlas-v2/": "beta del observatorio visual V2",
-                        "GET /atlas-v3/": "observatorio visual V3",
+                        "GET /atlas/": "observatorio visual read-only",
                         "GET /ui/graph?view=macro|global|project|neighbors|cross|discovery": "proyecciones visuales JSON (macro=proyectos, cross=aristas entre proyectos, discovery=hallazgos)",
                         "GET /ui/communities": "particion de barrios semanticos (Leiden) de la generacion vigente, si fue construida",
                         "GET /discovery": "hallazgos publicados (lista; ?id=<doc_id> devuelve uno)",

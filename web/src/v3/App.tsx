@@ -35,7 +35,7 @@ function Topbar({ route, immersive, onNavigate, children }: {
   return <header className="v3-topbar">
     <button className="v3-brand-button" onClick={() => onNavigate(MODE === "atlas" ? "atlas" : "descubrir")}><Brand /></button>
     <nav className={menu ? "open" : ""} aria-label="Navegación principal">{items.map(([id, label, Icon]) => <button key={id} className={route === id ? "active" : ""} onClick={() => { onNavigate(id); setMenu(false); }}><Icon /><span>{label}</span></button>)}</nav>
-    <div className="v3-top-actions">{MODE === "atlas" ? <a href={serviceLink("lab", "/lab-v3/descubrir")}><FlaskConical /> Lab</a> : <><a href={serviceLink("atlas", "/atlas-v3/")}><Telescope /> Atlas</a><a className="utility" href={serviceLink("atlas", "/atlas-v3/buscar")}><Search /><span>Buscar</span></a><a className="utility" href={serviceLink("atlas", "/atlas-v3/archivo")}><Archive /><span>Archivo</span></a></>}{children}<button className="v3-menu-button" aria-label={menu ? "Cerrar menú" : "Abrir menú"} onClick={() => setMenu((value) => !value)}>{menu ? <X /> : <Menu />}</button></div>
+    <div className="v3-top-actions">{MODE === "atlas" ? <a href={serviceLink("lab", "/lab/descubrir")}><FlaskConical /> Lab</a> : <><a href={serviceLink("atlas", "/atlas/")}><Telescope /> Atlas</a><a className="utility" href={serviceLink("atlas", "/atlas/buscar")}><Search /><span>Buscar</span></a><a className="utility" href={serviceLink("atlas", "/atlas/archivo")}><Archive /><span>Archivo</span></a></>}{children}<button className="v3-menu-button" aria-label={menu ? "Cerrar menú" : "Abrir menú"} onClick={() => setMenu((value) => !value)}>{menu ? <X /> : <Menu />}</button></div>
   </header>;
 }
 
@@ -95,8 +95,8 @@ function LabWorkspace() {
 
   function go(next: Route) { navigate("lab", next); }
   function openDoc(id: string) { updateQuery("doc", id); }
-  function neighbors(id: string) { window.open(serviceLink("atlas", `/atlas-v3/?view=neighbors&nb=${encodeURIComponent(id)}`), "_blank", "noopener,noreferrer"); }
-  function wikilink(value: string) { window.open(serviceLink("atlas", `/atlas-v3/buscar?q=${encodeURIComponent(value)}&limit=40&offset=0`), "_blank", "noopener,noreferrer"); }
+  function neighbors(id: string) { window.open(serviceLink("atlas", `/atlas/?view=neighbors&nb=${encodeURIComponent(id)}`), "_blank", "noopener,noreferrer"); }
+  function wikilink(value: string) { window.open(serviceLink("atlas", `/atlas/buscar?q=${encodeURIComponent(value)}&limit=40&offset=0`), "_blank", "noopener,noreferrer"); }
 
   return <div className="v3-app v3-lab-app">
     <Topbar route={route} onNavigate={go}>{identity && <button className="v3-session" onClick={logout} title={`Cerrar sesión de ${identity.user}`}><span>{identity.user}</span><LogOut /></button>}</Topbar>

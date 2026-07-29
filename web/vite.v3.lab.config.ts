@@ -4,10 +4,10 @@ import { resolve } from "path";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/lab-v3/",
+  base: "/lab/",
   define: { __MAPA_APP_MODE__: JSON.stringify("lab") },
   build: {
-    outDir: "dist-v3-lab",
+    outDir: "dist-lab",
     emptyOutDir: true,
     rollupOptions: { input: { index: resolve(__dirname, "v3-lab.html") } },
   },

@@ -4,13 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit && vite build",
     "layout": "node layout.mjs",
-    "build:lab": "tsc --noEmit && vite build --config vite.lab.config.ts",
-    "build:v3:atlas": "tsc --noEmit && vite build --config vite.v3.atlas.config.ts",
-    "build:v3:lab": "tsc --noEmit && vite build --config vite.v3.lab.config.ts",
-    "build:v3": "npm run build:v3:atlas && npm run build:v3:lab",
-    "build:all": "npm run build && npm run build:lab && npm run build:v3"
+    "build:graph": "tsc --noEmit && vite build",
+    "build:atlas": "tsc --noEmit && vite build --config vite.v3.atlas.config.ts",
+    "build:lab": "tsc --noEmit && vite build --config vite.v3.lab.config.ts",
+    "build:all": "npm run build:graph && npm run build:atlas && npm run build:lab",
+    "build": "npm run build:all"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",

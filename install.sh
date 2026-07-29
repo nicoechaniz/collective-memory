@@ -119,37 +119,43 @@ MAPA_ROOT="$MAPA_ROOT" "$VENV_PY" "$REPO/tools/bootstrap_model.py"
 echo "== frontend =="
 if command -v npm >/dev/null 2>&1; then
   WEB_STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-  WEB_RELEASE="$MAPA_DATA/web/releases/$WEB_STAMP"
+  WEB_RELEASE_ROOT="$MAPA_DATA/web/releases/current"
+  WEB_RELEASE="$WEB_RELEASE_ROOT/$WEB_STAMP"
   if (
     cd "$REPO/web"
     npm install --silent
-    npm run build --silent
-    npm run build:lab --silent
-    npm run build:v3:atlas --silent
+    npm run build:graph --silent
+    npm run build:atlas --silent
     if [[ $STRUCTURAL_ONLY -eq 1 ]]; then
-      VITE_LAB_STRUCTURAL_ONLY=1 npm run build:v3:lab --silent
+      VITE_LAB_STRUCTURAL_ONLY=1 npm run build:lab --silent
     else
-      npm run build:v3:lab --silent
+      npm run build:lab --silent
     fi
   ); then
     mkdir -p "$WEB_RELEASE"
-    cp -a "$REPO/web/dist" "$WEB_RELEASE/dist"
+    cp -a "$REPO/web/dist-atlas-graph" "$WEB_RELEASE/dist-atlas-graph"
+    cp -a "$REPO/web/dist-atlas" "$WEB_RELEASE/dist-atlas"
     cp -a "$REPO/web/dist-lab" "$WEB_RELEASE/dist-lab"
-    cp -a "$REPO/web/dist-v3-atlas" "$WEB_RELEASE/dist-v3-atlas"
-    cp -a "$REPO/web/dist-v3-lab" "$WEB_RELEASE/dist-v3-lab"
     find "$WEB_RELEASE" -type d -exec chmod 755 {} +
     find "$WEB_RELEASE" -type f -exec chmod 644 {} +
     mkdir -p "$MAPA_DATA/web"
     chmod 755 "$MAPA_DATA/web" "$MAPA_DATA/web/releases"
-    for bundle in dist dist-lab dist-v3-atlas dist-v3-lab; do
+    for bundle in dist-atlas-graph dist-atlas dist-lab; do
       tmp_link="$MAPA_DATA/web/.${bundle}.${WEB_STAMP}"
-      ln -s "releases/$WEB_STAMP/$bundle" "$tmp_link"
+      ln -s "releases/current/$WEB_STAMP/$bundle" "$tmp_link"
       if [[ -e "$MAPA_DATA/web/$bundle" && ! -L "$MAPA_DATA/web/$bundle" ]]; then
-        mv "$MAPA_DATA/web/$bundle" "$MAPA_DATA/web/${bundle}.previous.${WEB_STAMP}"
+        rm -rf "$MAPA_DATA/web/$bundle"
       fi
       mv -Tf "$tmp_link" "$MAPA_DATA/web/$bundle"
     done
-    echo "  atlas + lab V1/V3 publicados de forma atomica ($WEB_STAMP)"
+    rm -rf "$MAPA_DATA/web/dist" "$MAPA_DATA/web/dist-v2-atlas" \
+      "$MAPA_DATA/web/dist-v2-lab" "$MAPA_DATA/web/dist-v3-atlas" \
+      "$MAPA_DATA/web/dist-v3-lab"
+    find "$WEB_RELEASE_ROOT" -mindepth 1 -maxdepth 1 -type d \
+      ! -name "$WEB_STAMP" -exec rm -rf {} +
+    find "$MAPA_DATA/web/releases" -mindepth 1 -maxdepth 1 \
+      ! -name current -exec rm -rf {} +
+    echo "  atlas + lab actuales publicados de forma atomica ($WEB_STAMP)"
   else
     echo "  aviso: el build web fallo; no se modifico la version publicada"
   fi
@@ -186,8 +192,8 @@ Listo.
 
   Indexar:   MAPA_ROOT=$MAPA_ROOT $VENV_PY $CODE_HOME/tier1.py index --scope total
   Buscar:    MAPA_ROOT=$MAPA_ROOT $VENV_PY $CODE_HOME/tier1.py search "tu consulta"
-  Servir:    MAPA_ROOT=$MAPA_ROOT $VENV_PY $CODE_HOME/serve.py     -> http://$BIND_ADDR:$SERVE_PORT/atlas-v3/
-  Lab V3:    http://$BIND_ADDR:$PG_PORT/lab-v3/descubrir  (si habilitaste mapa-playground)
+  Servir:    MAPA_ROOT=$MAPA_ROOT $VENV_PY $CODE_HOME/serve.py     -> http://$BIND_ADDR:$SERVE_PORT/atlas/
+  Lab:       http://$BIND_ADDR:$PG_PORT/lab/descubrir  (si habilitaste mapa-playground)
 
 Probalo primero con el corpus de ejemplo: examples/README.md
 EOF

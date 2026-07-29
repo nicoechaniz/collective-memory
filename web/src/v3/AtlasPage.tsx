@@ -12,8 +12,8 @@ export default function AtlasPage({ immersive, setImmersive }: { immersive: bool
   const params = queryParams();
   const neighbor = params.get("nb");
   const src = neighbor
-    ? `/atlas/#view=neighbors&nb=${encodeURIComponent(neighbor)}`
-    : "/atlas/#view=global&d3=1";
+    ? `/atlas/graph/#view=neighbors&nb=${encodeURIComponent(neighbor)}`
+    : "/atlas/graph/#view=global&d3=1";
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {

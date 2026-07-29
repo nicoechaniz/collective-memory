@@ -56,8 +56,8 @@ La interfaz V3 no consulta el esquema interno del indice directamente.
 con proyectos, documentos, comunidades y evidencia entre proyectos. Esto
 desacopla la visualizacion del esquema canonico, evita cargar el modelo para
 navegar y permite que una seleccion de corpus produzca un atlas aislado sin
-cambiar el frontend. La V1 queda disponible como explorador 3D embebido dentro
-de la V3.
+cambiar el frontend. El motor 3D se monta como componente interno bajo
+`/atlas/graph/`; no es una interfaz pública paralela.
 
 ## 4. Descubrimiento
 

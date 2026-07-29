@@ -4,10 +4,10 @@ import { resolve } from "path";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/atlas-v3/",
+  base: "/atlas/",
   define: { __MAPA_APP_MODE__: JSON.stringify("atlas") },
   build: {
-    outDir: "dist-v3-atlas",
+    outDir: "dist-atlas",
     emptyOutDir: true,
     rollupOptions: { input: { index: resolve(__dirname, "v3-atlas.html") } },
   },

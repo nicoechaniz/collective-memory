@@ -45,6 +45,7 @@ ReadOnlyPaths=@CODE_HOME@
 ReadWritePaths=@MAPA_DATA@/discovery
 RuntimeDirectory=mapa
 RuntimeDirectoryMode=0770
+RuntimeDirectoryPreserve=yes
 ReadWritePaths=/run/mapa
 
 MemoryMax=6G
