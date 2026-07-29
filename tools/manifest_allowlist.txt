@@ -26,6 +26,9 @@ COPY    discover_agent.py               mapa/discover_agent.py
 COPY    synthesize.py                   mapa/synthesize.py
 COPY    serve.py                        mapa/serve.py
 COPY    playground.py                   mapa/playground.py
+COPY    ui_v2_api.py                    mapa/ui_v2_api.py
+COPY    ui_v2_sessions.py               mapa/ui_v2_sessions.py
+COPY    ui_v2_store.py                  mapa/ui_v2_store.py
 COPY    playground_queue.py             mapa/playground_queue.py
 COPY    llm_provider.py                 mapa/llm_provider.py
 COPY    director_mcp.py                 mapa/director_mcp.py
@@ -50,11 +53,15 @@ COPY    web/index.html                  web/index.html
 COPY    web/lab.html                    web/lab.html
 COPY    web/layout.mjs                  web/layout.mjs
 COPY    web/shot.mjs                    web/shot.mjs
-COPY    web/package.json                web/package.json
-COPY    web/package-lock.json           web/package-lock.json
+AUTHOR  -                               web/package.json
+AUTHOR  -                               web/package-lock.json
 COPY    web/tsconfig.json               web/tsconfig.json
 COPY    web/vite.config.ts              web/vite.config.ts
 COPY    web/vite.lab.config.ts          web/vite.lab.config.ts
+AUTHOR  -                               web/v3-atlas.html
+AUTHOR  -                               web/v3-lab.html
+AUTHOR  -                               web/vite.v3.atlas.config.ts
+AUTHOR  -                               web/vite.v3.lab.config.ts
 COPY    web/src/api.ts                  web/src/api.ts
 COPY    web/src/App.tsx                 web/src/App.tsx
 COPY    web/src/colors.ts               web/src/colors.ts
@@ -65,18 +72,37 @@ COPY    web/src/labels.ts               web/src/labels.ts
 COPY    web/src/main.tsx                web/src/main.tsx
 COPY    web/src/SearchBox.tsx           web/src/SearchBox.tsx
 COPY    web/src/StatsPanel.tsx          web/src/StatsPanel.tsx
-COPY    web/src/styles.css              web/src/styles.css
+AUTHOR  -                               web/src/styles.css
 COPY    web/src/TreePanel.tsx           web/src/TreePanel.tsx
-COPY    web/src/lab/LabApp.tsx          web/src/lab/LabApp.tsx
+AUTHOR  -                               web/src/lab/LabApp.tsx
 COPY    web/src/lab/main.tsx            web/src/lab/main.tsx
+AUTHOR  -                               web/src/v3/App.tsx
+AUTHOR  -                               web/src/v3/AtlasPage.tsx
+AUTHOR  -                               web/src/v3/DocumentReader.tsx
+AUTHOR  -                               web/src/v3/ReadPages.tsx
+AUTHOR  -                               web/src/v3/api.ts
+AUTHOR  -                               web/src/v3/env.d.ts
+AUTHOR  -                               web/src/v3/main.tsx
+AUTHOR  -                               web/src/v3/router.ts
+AUTHOR  -                               web/src/v3/session.tsx
+AUTHOR  -                               web/src/v3/styles.css
+AUTHOR  -                               web/src/v3/types.ts
+AUTHOR  -                               web/src/v3/lab/DirectorPage.tsx
+AUTHOR  -                               web/src/v3/lab/DiscoverPage.tsx
+AUTHOR  -                               web/src/v3/lab/EvidencePage.tsx
+AUTHOR  -                               web/src/v3/lab/LoginGate.tsx
+AUTHOR  -                               web/src/v3/lab/TrayPage.tsx
+AUTHOR  -                               web/src/v3/lab/constants.tsx
 
 # ---------- tests ----------
 COPY    test_inyeccion_indirecta.py     tests/test_inyeccion_indirecta.py
 AUTHOR  -                               tests/test_safe_bind.py
+AUTHOR  -                               tests/test_ui_v2.py
+AUTHOR  -                               tests/test_structural_mode.py
 
 # ---------- systemd (plantillas: se derivan de las unidades vivas) ----------
 COPY    mapa-serve.service              systemd/mapa-serve.service.in
-COPY    mapa-playground.service         systemd/mapa-playground.service.in
+AUTHOR  -                               systemd/mapa-playground.service.in
 AUTHOR  -                               systemd/mapa-director-button.path.in
 AUTHOR  -                               systemd/mapa-director-button.service.in
 
@@ -86,6 +112,7 @@ AUTHOR  -                               config/providers.example.json
 AUTHOR  -                               config/backends.example.json
 AUTHOR  -                               config/policy.example.json
 AUTHOR  -                               config/mapa.env.example
+AUTHOR  -                               config/ui_v2_catalog.example.json
 
 # ---------- herramientas ----------
 AUTHOR  -                               tools/leak_check.py
@@ -99,6 +126,7 @@ AUTHOR  -                               docs/arquitectura.md
 AUTHOR  -                               docs/instalacion.md
 AUTHOR  -                               docs/operacion.md
 AUTHOR  -                               docs/seguridad.md
+AUTHOR  -                               docs/interfaz-v3.md
 AUTHOR  -                               README.md
 AUTHOR  -                               LICENSE
 AUTHOR  -                               requirements.txt
@@ -115,3 +143,4 @@ AUTHOR  -                               examples/corpus/**
 # Cada una acotada a path + reglas. NO aflojar reglas globalmente.
 EXCEPT  web/package-lock.json           rules=3,5   # nombres de terceros e integrity sha512
 EXCEPT  tests/test_safe_bind.py         rules=2     # necesita literales públicos reales como fixture
+EXCEPT  web/src/v3/App.tsx              rules=1     # rutas URL internas /atlas-v3 y /lab-v3, no paths del host

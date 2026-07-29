@@ -4,6 +4,22 @@ import type { GraphPayload, Manifest, NodeData } from "../api";
 const GraphView = lazy(() => import("../GraphView"));
 const DocReader = lazy(() => import("../DocReader"));
 
+const BUILD_ENV = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env || {};
+const STRUCTURAL_ONLY = BUILD_ENV.VITE_LAB_STRUCTURAL_ONLY === "1";
+const STRUCTURAL_NOTICE = BUILD_ENV.VITE_LAB_STRUCTURAL_NOTICE ||
+  "Podés ejecutar operadores sobre los vectores ya calculados. Los resultados son precandidatos estructurales sin validación de un juez LLM.";
+const STRUCTURAL_OPERATORS = new Set(["latent_bridge", "cluster_frontier", "outlier"]);
+
+function StructuralNotice() {
+  if (!STRUCTURAL_ONLY) return null;
+  return (
+    <aside className="lab-mode-notice" role="status">
+      <strong>Modo demostración sin inferencia en vivo</strong>
+      <span>{STRUCTURAL_NOTICE}</span>
+    </aside>
+  );
+}
+
 // ---------- fetch con token ----------
 
 function getToken() {
@@ -73,6 +89,7 @@ function TokenGate({ onReady }: { onReady: () => void }) {
   return (
     <div style={{ maxWidth: 480, margin: "15vh auto", padding: 24 }}>
       <h2>🔭 Laboratorio de la Memoria Colectiva</h2>
+      <StructuralNotice />
       <p>Pegá tu token de acceso:</p>
       <input
         style={{ width: "100%", padding: 8 }}
@@ -113,7 +130,7 @@ function RunView({ manifest }: { manifest: Manifest | null }) {
 
   useEffect(() => {
     pgJson<{ judges: Judge[]; default_judge: string }>("/pg/operators")
-      .then((d) => { setJudges(d.judges); setJudge((j) => j || d.default_judge); })
+      .then((d) => { setJudges(d.judges); setJudge((j) => j || d.default_judge || ""); })
       .catch(() => {});
   }, []);
 
@@ -151,22 +168,25 @@ function RunView({ manifest }: { manifest: Manifest | null }) {
       <div style={{ margin: "0 0 14px" }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>¿Qué querés descubrir?</div>
         <textarea
+          disabled={STRUCTURAL_ONLY}
           value={task}
           onChange={(e) => setTask(e.target.value)}
           maxLength={2000}
           rows={3}
           style={{ width: "100%", boxSizing: "border-box", resize: "vertical" }}
-          placeholder="Ej: relación entre dos investigaciones que no se citan · qué proyectos tocan un mismo tema sin saberlo · una idea de un proyecto que le sirva a otro"
+          placeholder={STRUCTURAL_ONLY ? "Agente dirigido desactivado en este modo" : "Ej: relación entre dos investigaciones que no se citan · qué proyectos tocan un mismo tema sin saberlo · una idea de un proyecto que le sirva a otro"}
         />
         <div style={{ fontSize: 12, opacity: 0.6 }}>
-          Con texto acá, un agente explora la memoria colectiva dirigido por tu pedido. Vacío = barrido automático por operadores ↓
+          {STRUCTURAL_ONLY
+            ? "La demostración usa únicamente el barrido estructural sobre vectores precomputados."
+            : "Con texto acá, un agente explora la memoria colectiva dirigido por tu pedido. Vacío = barrido automático por operadores ↓"}
         </div>
       </div>
 
       <fieldset disabled={agentMode} style={{ opacity: agentMode ? 0.4 : 1, border: "1px solid #333", borderRadius: 6, padding: 10 }}>
         <legend style={{ fontSize: 13 }}>Barrido automático (operadores)</legend>
         <div className="actionbar" style={{ padding: 0 }}>
-          {Object.entries(OPERATOR_LABELS).map(([k, label]) => (
+          {Object.entries(OPERATOR_LABELS).filter(([k]) => !STRUCTURAL_ONLY || STRUCTURAL_OPERATORS.has(k)).map(([k, label]) => (
             <label key={k} title={OPERATOR_HELP[k]}>
               <input
                 type="checkbox"
@@ -180,7 +200,7 @@ function RunView({ manifest }: { manifest: Manifest | null }) {
         <details style={{ margin: "6px 0 8px", fontSize: 13 }}>
           <summary style={{ cursor: "pointer", opacity: 0.75 }}>❓ ¿Qué significa cada operador?</summary>
           <dl style={{ margin: "8px 0 0", maxWidth: "72ch" }}>
-            {Object.entries(OPERATOR_LABELS).map(([k, label]) => (
+            {Object.entries(OPERATOR_LABELS).filter(([k]) => !STRUCTURAL_ONLY || STRUCTURAL_OPERATORS.has(k)).map(([k, label]) => (
               <div key={k} style={{ marginBottom: 6 }}>
                 <dt style={{ fontWeight: 600, display: "inline" }}>{label}</dt>
                 <dd style={{ display: "inline", margin: "0 0 0 6px", opacity: 0.8 }}>{OPERATOR_HELP[k]}</dd>
@@ -193,7 +213,7 @@ function RunView({ manifest }: { manifest: Manifest | null }) {
           <input type="number" min={1} max={30} value={limit} onChange={(e) => setLimit(Math.min(30, Math.max(1, parseInt(e.target.value, 10) || 1)))} />
         </label>
       </fieldset>
-      <div style={{ margin: "10px 0" }}>
+      {!STRUCTURAL_ONLY && <div style={{ margin: "10px 0" }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>Modelo juez</div>
         {judges.map((j) => (
           <label key={j.id} style={{ display: "block", marginBottom: 6, cursor: "pointer" }}>
@@ -202,7 +222,7 @@ function RunView({ manifest }: { manifest: Manifest | null }) {
             <div style={{ fontSize: 12, opacity: 0.65, marginLeft: 22 }}>{j.desc}</div>
           </label>
         ))}
-      </div>
+      </div>}
       {manifest && (
         <details style={{ margin: "8px 0" }}>
           <summary>limitar a proyectos ({projects.size || "todos"})</summary>
@@ -222,7 +242,7 @@ function RunView({ manifest }: { manifest: Manifest | null }) {
       )}
       <div className="actionbar" style={{ padding: "10px 0" }}>
         <button className="primary" disabled={!agentMode && !ops.size} onClick={run}>
-          {agentMode ? "🔭 descubrir" : "▶ barrer"}
+          {STRUCTURAL_ONLY ? "generar precandidatos" : agentMode ? "🔭 descubrir" : "▶ barrer"}
         </button> <span className="hint">{msg}</span>
       </div>
       <h4>Mis jobs</h4>
@@ -244,7 +264,7 @@ function RunView({ manifest }: { manifest: Manifest | null }) {
           })}
         </tbody>
       </table>
-      <DirectorPanel />
+      {!STRUCTURAL_ONLY && <DirectorPanel />}
     </div>
   );
 }
@@ -614,6 +634,7 @@ export default function LabApp() {
         <a href="/atlas/">atlas ↗</a>
         <a style={{ cursor: "pointer", opacity: 0.6 }} onClick={() => { localStorage.removeItem("lab.token"); setAuthed(false); }}>salir</a>
       </header>
+      <StructuralNotice />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
         {tab === "correr" && <RunView manifest={manifest} />}
         {tab === "bandeja" && <TrayView onOpenDoc={setReaderDoc} />}

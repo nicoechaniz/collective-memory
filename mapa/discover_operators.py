@@ -944,11 +944,13 @@ def run_campaign(args):
     prov = llm_provider.get_provider(getattr(args, "provider", "default") or "default",
                                      getattr(args, "model", None) or None)
     generated_by = llm_provider.provider_label(prov)
-    llm = llm_provider.provider_up(prov)
+    no_llm = os.environ.get("MAPA_DISCOVERY_NO_LLM", "0") == "1"
+    llm = False if no_llm else llm_provider.provider_up(prov)
     if not llm:
         skipped_llm = [o for o in ops if o in LLM_OPERATORS]
         ops = tuple(o for o in ops if o in DETERMINISTIC)
-        print(f"[discover] provider {generated_by} no responde: screen deshabilitado, operadores LLM "
+        reason = "desactivado por política" if no_llm else f"provider {generated_by} no responde"
+        print(f"[discover] LLM {reason}: screen deshabilitado, operadores LLM "
               f"salteados {skipped_llm} — los candidatos quedarán unscreened (no promovibles)", file=sys.stderr)
 
     conv, members, meta_by_id = load_universe(dv, set(args.project) or None)

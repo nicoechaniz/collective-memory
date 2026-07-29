@@ -51,7 +51,7 @@ flowchart LR
 |---|---|---|
 | 🔡 | **Search by meaning** | Hybrid retrieval: lexical (SQLite FTS5) **and** semantic (local embeddings), fused with Reciprocal Rank Fusion |
 | 🗺️ | **Living map** | One node per project, recompiled by a single writer under a lock, published by atomic snapshot swap |
-| 🌐 | **Visual atlas** | The document graph, colored by communities detected with the Leiden algorithm |
+| 🌐 | **Visual observatory** | Immersive 3D atlas, project filters, semantic communities, search and human-readable document drill-down |
 | 🔍 | **Surface hidden links** | Six operators sweep the vector space for latent bridges, cross-project frontiers, tensions and analogies |
 | 🧪 | **No hallucinated findings** | Every candidate is put through an LLM **falsification** pass and waits in a private ledger for human review |
 | 🔒 | **Stays home** | Loopback by default, kernel-level network filter, model runs offline |
@@ -175,8 +175,13 @@ git clone https://github.com/Mar-IA-no/collective-memory && cd collective-memory
 export MAPA_ROOT=/path/to/your/corpus
 <venv>/bin/python <code-home>/tier1.py index --scope total
 <venv>/bin/python <code-home>/tier1.py search "your query"
-<venv>/bin/python <code-home>/serve.py        # atlas at http://127.0.0.1:8899/atlas/
+<venv>/bin/python <code-home>/serve.py        # V3 atlas at http://127.0.0.1:8899/atlas-v3/
 ```
+
+The V3 interface keeps the original graph explorer available at `/atlas/`, and
+adds `/atlas-v3/` (atlas, search, archive) plus `/lab-v3/descubrir` (discovery,
+review and evidence). See [`docs/interfaz-v3.md`](docs/interfaz-v3.md) for the
+full and structural-only deployment profiles.
 
 Try it with no material of your own — there's a synthetic corpus built to show the semantic layer surfacing a latent connection:
 
@@ -241,7 +246,7 @@ collective-memory/
 ├── tools/           leak-check, model bootstrap, repo builder
 ├── tests/           bind invariant, indirect-injection defenses
 ├── examples/        synthetic corpus for a zero-data demo
-├── docs/            architecture · install · operation · security
+├── docs/            architecture · install · operation · security · V3 interface
 └── install.sh · requirements.txt · LICENSE
 ```
 

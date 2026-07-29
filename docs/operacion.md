@@ -20,6 +20,15 @@ atlas cae a deteccion local y el prior de inesperadez del minero queda inactivo:
 ninguna de las dos cosas rompe nada, pero explica por que a veces los colores
 cambian.
 
+Cada publicacion genera tambien `ui_v2.db` dentro de la misma generacion del
+atlas. Es una proyeccion de lectura para la V3; si hiciera falta reconstruirla
+sin reindexar ni usar GPU:
+
+```bash
+MAPA_ROOT=<corpus> MAPA_DATA=<corpus>/.mapa \
+  <venv>/bin/python <code-home>/ui_v2_store.py
+```
+
 ## Notas al inbox
 
 Un archivo por nota en `<corpus>/inbox/new/`, con nombre unico. El bibliotecario
@@ -73,6 +82,8 @@ siempre humana.
 
 ```bash
 python3 tests/test_safe_bind.py            # invariante de bind; corre en CI
+python3 tests/test_ui_v2.py                 # proyeccion, API y sesiones V3
+python3 tests/test_structural_mode.py       # el perfil demo bloquea LLM/director
 python3 tests/test_inyeccion_indirecta.py  # requiere modelo local + GPU
 ```
 

@@ -88,6 +88,7 @@ DEFAULT_POLICY = {
     "curated_extra_exts": [".txt", ".sql", ".jsonl"],
     "exclude_dir_names": [
         ".git", ".hg", ".svn", ".claude", ".codex", ".agents", ".venv", "venv", "env", "node_modules",
+        ".mapa-snapshots",
         "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".next",
         "build", "dist", "out", ".cache", "cache", "model_cache",
         "unsloth_compiled_cache", ".tools",
@@ -260,6 +261,20 @@ def project_for_doc_id(doc_id):
         parts = doc_id.split("/")
         return parts[2].split(".")[0] if len(parts) > 2 and parts[1] == "proyectos" else "root"
     return first or "root"
+
+
+def frontmatter_project(path):
+    """Read an explicit project identity from a curated Markdown node."""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            head = f.read(16_384)
+    except OSError:
+        return None
+    match = re.match(r"^---\n(.*?)\n---", head, re.S)
+    if not match:
+        return None
+    project = re.search(r"^project:\s*['\"]?([^'\"\n]+?)['\"]?\s*$", match.group(1), re.M)
+    return project.group(1).strip() if project else None
 
 
 def is_frontmatter_opt_out(body):
@@ -469,7 +484,8 @@ def curated_candidates(policy):
         seen.add(rp)
         rel = os.path.relpath(p, mapa_real).replace(os.sep, "/")
         logical = "mapa/" + rel
-        yield {"doc_id": logical, "path": rp, "logical_rel": logical, "kind": "map", "project": project_for_doc_id(logical),
+        yield {"doc_id": logical, "path": rp, "logical_rel": logical, "kind": "map",
+               "project": frontmatter_project(rp) or project_for_doc_id(logical),
                "included_by": "curated_map"}
     if os.path.exists(MANIFEST):
         try:

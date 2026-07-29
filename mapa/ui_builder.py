@@ -1044,6 +1044,7 @@ def build(mode):
         "tree": "tree.json",
         "stats": "stats.json",
         "neighbors_map": "neighbors_map.json",
+        "v2_projection": "ui_v2.db",
     }
     if stats.get("communities"):
         manifest_files["communities"] = "communities.json"
@@ -1054,6 +1055,11 @@ def build(mode):
     }
     json_dump(os.path.join(stage, "stats.json"), stats, gzip_copy=True)
     json_dump(os.path.join(stage, "manifest.json"), manifest, gzip_copy=True)
+
+    # V2 se deriva de esta misma generacion antes del flip del symlink. Un fallo
+    # aborta el publish completo y V1 sigue sirviendo la generacion anterior.
+    from ui_v2_store import build as build_ui_v2
+    build_ui_v2(ui_root=stage, output_path=os.path.join(stage, "ui_v2.db"))
 
     for root, dirs, files in os.walk(stage):
         os.chmod(root, 0o755)

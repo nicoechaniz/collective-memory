@@ -51,6 +51,14 @@ atlas se degrada, no se rompe.
 `serve.py` sirve todo eso en modo estrictamente lectura: no hay un solo endpoint
 de escritura, y los documentos salen de la base, no del filesystem.
 
+La interfaz V3 no consulta el esquema interno del indice directamente.
+`ui_v2_store.py` construye `ui_v2.db`, una proyeccion normalizada y regenerable
+con proyectos, documentos, comunidades y evidencia entre proyectos. Esto
+desacopla la visualizacion del esquema canonico, evita cargar el modelo para
+navegar y permite que una seleccion de corpus produzca un atlas aislado sin
+cambiar el frontend. La V1 queda disponible como explorador 3D embebido dentro
+de la V3.
+
 ## 4. Descubrimiento
 
 `discover_operators.py` implementa seis operadores sobre el espacio vectorial:
@@ -61,6 +69,11 @@ Cada candidato pasa por un filtro LLM local y una etapa de **falsacion**: se le
 pide al modelo que intente refutarlo. Los que sobreviven quedan en un registro
 privado con estado `candidate`. Nada se publica sin revision humana, y la
 promocion exige un minimo de fuentes primarias trazables.
+
+El Lab ofrece un perfil `structural-only`: ejecuta solamente operadores
+deterministas sobre los vectores ya publicados, sin invocar un LLM ni habilitar
+el director. La restriccion se aplica en backend; ocultar controles en el
+frontend es solo una segunda capa de claridad.
 
 Hay un **prior de inesperadez**: los pares que cruzan comunidades poco conectadas
 entre si se evaluan primero. Reordena, no filtra; si el artefacto de comunidades

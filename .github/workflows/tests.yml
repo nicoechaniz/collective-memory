@@ -1,0 +1,45 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # Invariante de seguridad: el servicio nunca queda expuesto a internet.
+      - name: safe_bind
+        run: python3 tests/test_safe_bind.py
+
+      - name: sintaxis de los shell
+        run: |
+          for s in scripts/*.sh install.sh; do bash -n "$s"; done
+
+      - name: compilacion de los modulos
+        run: python3 -m compileall -q mapa tools
+
+      - name: proyeccion y API V3
+        run: |
+          python3 tests/test_ui_v2.py
+          python3 tests/test_structural_mode.py
+
+      - name: frontend V1/V3
+        working-directory: web
+        run: |
+          npm ci
+          npm run build:all
+          VITE_LAB_STRUCTURAL_ONLY=1 npm run build:v3:lab
+
+      # test_inyeccion_indirecta.py NO corre aca: necesita un runtime de modelo
+      # local con GPU. Es un test de integracion manual (ver docs/operacion.md).

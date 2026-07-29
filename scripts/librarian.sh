@@ -10,6 +10,7 @@ CODE_HOME="${MAPA_CODE_HOME:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../mapa" && pw
 MAPA="$ROOT/mapa"
 INBOX="$ROOT/inbox"
 D="${MAPA_DATA:-$ROOT/.mapa}"
+SNAPSHOTS="${MAPA_SNAPSHOTS_DIR:-$D/snapshots}"
 KEEP="${MAPA_KEEP_SNAPSHOTS:-5}"
 
 # --- Exclusion mutua (single-writer) ---
@@ -25,7 +26,7 @@ CUR=""
 [ -L "$MAPA" ] && CUR="$(readlink -f "$MAPA")" || true
 
 # --- Autorregenerar el spool si falta (robustez) ---
-mkdir -p "$INBOX"/new "$INBOX"/processing "$INBOX"/done "$INBOX"/error "$D"/events "$D"/staging "$D"/snapshots
+mkdir -p "$INBOX"/new "$INBOX"/processing "$INBOX"/done "$INBOX"/error "$D"/events "$D"/staging "$SNAPSHOTS"
 
 # --- Staging desde el snapshot actual ---
 STAGE="$D/staging/$RUN_ID"
@@ -120,9 +121,10 @@ print(json.dumps({'nodes': nodes}, ensure_ascii=False, indent=2, sort_keys=True)
 PY
 
 # --- status.md ---
-backlog="$(find "$INBOX/new" -type f 2>/dev/null | wc -l | tr -d ' ')"
-mapped="$(find "$STAGE/proyectos" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
-hallazgos_n="$(find "$STAGE/hallazgos" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
+# Con pipefail, un directorio opcional ausente haria abortar una instalacion nueva.
+backlog="$( { find "$INBOX/new" -type f 2>/dev/null || true; } | wc -l | tr -d ' ')"
+mapped="$( { find "$STAGE/proyectos" -name '*.md' 2>/dev/null || true; } | wc -l | tr -d ' ')"
+hallazgos_n="$( { find "$STAGE/hallazgos" -name '*.md' 2>/dev/null || true; } | wc -l | tr -d ' ')"
 cat > "$STAGE/status.md" <<EOF
 ---
 id: status
@@ -144,9 +146,9 @@ EOF
 printf '{"ts":"%s","run_id":"%s","event":"publish","mapped":%s,"backlog":%s}\n' "$NOW" "$RUN_ID" "$mapped" "$backlog" >> "$D/events/events.jsonl"
 { echo "# Log del bibliotecario"; echo; echo '```jsonl'; tail -n 200 "$D/events/events.jsonl"; echo '```'; } > "$STAGE/log.md"
 
-# --- Publish atomico: staging -> snapshot (bajo .mapa/snapshots/, para no ensuciar el root) ---
-mkdir -p "$D/snapshots"
-NEW="$D/snapshots/mapa.$RUN_ID"
+# --- Publish atomico: staging -> snapshot (ubicacion parametrizable) ---
+mkdir -p "$SNAPSHOTS"
+NEW="$SNAPSHOTS/mapa.$RUN_ID"
 if [ -e "$NEW" ]; then echo "[bibliotecario] Colision de run_id ($RUN_ID). Abortando sin publicar." >&2; exit 4; fi
 mv "$STAGE" "$NEW"
 TMP="$D/.maplink.$RUN_ID"
@@ -154,7 +156,7 @@ ln -sfn "$NEW" "$TMP"
 mv -Tf "$TMP" "$MAPA"
 
 # --- Poda con grace: retener los KEEP snapshots mas nuevos ---
-ls -1dt "$D"/snapshots/mapa.* 2>/dev/null | tail -n +$((KEEP + 1)) | while read -r old; do
+ls -1dt "$SNAPSHOTS"/mapa.* 2>/dev/null | tail -n +$((KEEP + 1)) | while read -r old; do
   [ "$old" = "$NEW" ] && continue
   rm -rf "$old"
 done

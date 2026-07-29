@@ -15,6 +15,7 @@ import os, sys, json, threading, time, mimetypes
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mapa_config import DMAPA, safe_bind  # noqa: E402
 import tier1  # noqa: E402
+from ui_v2_api import V2API  # noqa: E402
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer  # noqa: E402
 from urllib.parse import urlparse, parse_qs, unquote  # noqa: E402
@@ -29,9 +30,12 @@ UNLOAD_AFTER_SEARCH = os.environ.get("MAPA_UNLOAD_AFTER_SEARCH", "0") == "1"
 SERVE_VECTOR = os.environ.get("MAPA_SERVE_VECTOR", "0") == "1"
 _sem = threading.Semaphore(4)                        # límite de concurrencia
 WEB_DIST = os.path.join(DMAPA, "web", "dist")
+WEB_V2_DIST = os.path.join(DMAPA, "web", "dist-v2-atlas")
+WEB_V3_DIST = os.path.join(DMAPA, "web", "dist-v3-atlas")
 QUARTZ_PUBLIC = os.path.join(DMAPA, "quartz", "public")
 UI_LINK = os.path.join(DMAPA, "ui")
 UI_STATUS = os.path.join(DMAPA, "ui_status.json")
+V2_API = V2API(UI_LINK, allow_vector=SERVE_VECTOR)
 
 def _send(h, code, obj):
     body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
@@ -45,7 +49,10 @@ def _send(h, code, obj):
 
 
 # worker-src blob: es imprescindible — graphology-layout-forceatlas2/worker crea el worker desde un Blob URL
-CSP = "default-src 'self'; script-src 'self'; worker-src 'self' blob:; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
+CSP = ("default-src 'self'; script-src 'self'; worker-src 'self' blob:; "
+       "connect-src 'self'; img-src 'self' data:; font-src 'self'; "
+       "style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; "
+       "frame-ancestors 'self'; form-action 'self'")
 
 
 def _send_html(h, code, title, message):
@@ -111,20 +118,20 @@ def _send_file(h, path, mime=None):
             h.wfile.write(chunk)
 
 
-def _static(h, root, prefix, spa=False):
+def _static(h, root, prefix, spa=False, index="index.html"):
     if not os.path.isdir(root):
         return _send_html(h, 503, "Projection missing", f"{prefix} is not built yet.")
     path = urlparse(h.path).path
     rel = path[len(prefix):].lstrip("/")
     if not rel:
-        rel = "index.html"
+        rel = index
     target = _safe_join(root, rel)
     if target and os.path.isdir(target):
         target = os.path.join(target, "index.html")
     if target and os.path.isfile(target):
         return _send_file(h, target)
     if spa and not rel.startswith("assets/"):
-        return _send_file(h, os.path.join(root, "index.html"), "text/html; charset=utf-8")
+        return _send_file(h, os.path.join(root, index), "text/html; charset=utf-8")
     return _send(h, 404, {"error": "not found"})
 
 
@@ -171,12 +178,19 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         qs = parse_qs(u.query)
         try:
+            if u.path == "/atlas-v3" or u.path.startswith("/atlas-v3/"):
+                return _static(self, WEB_V3_DIST, "/atlas-v3/", spa=True, index="v3-atlas.html")
+            if u.path == "/atlas-v2" or u.path.startswith("/atlas-v2/"):
+                return _static(self, WEB_V2_DIST, "/atlas-v2/", spa=True, index="v2-atlas.html")
             if u.path == "/atlas" or u.path.startswith("/atlas/"):
                 return _static(self, WEB_DIST, "/atlas/", spa=True)
             if u.path == "/wiki" or u.path.startswith("/wiki/"):
                 if not os.path.isdir(QUARTZ_PUBLIC):
                     return _send_html(self, 503, "Quartz mirror not built", "Quartz mirror not built.")
                 return _static(self, QUARTZ_PUBLIC, "/wiki/", spa=False)
+            if u.path.startswith("/ui/v2"):
+                code, obj = V2_API.dispatch(u.path, qs)
+                return _send(self, code, obj)
             if u.path.startswith("/ui/"):
                 return self._handle_ui(u, qs)
             if u.path in ("/", "/help"):
@@ -187,6 +201,8 @@ class Handler(BaseHTTPRequestHandler):
                         "GET /search?q=&k=&kind=&project=": "busqueda read-only (q<=512 chars, k<=50; kind/project opcionales)",
                         "GET /doc?id=<doc_id>": "markdown completo de un doc (doc_id viene de /search)",
                         "GET /atlas/": "atlas visual read-only",
+                        "GET /atlas-v2/": "beta del observatorio visual V2",
+                        "GET /atlas-v3/": "observatorio visual V3",
                         "GET /ui/graph?view=macro|global|project|neighbors|cross|discovery": "proyecciones visuales JSON (macro=proyectos, cross=aristas entre proyectos, discovery=hallazgos)",
                         "GET /ui/communities": "particion de barrios semanticos (Leiden) de la generacion vigente, si fue construida",
                         "GET /discovery": "hallazgos publicados (lista; ?id=<doc_id> devuelve uno)",

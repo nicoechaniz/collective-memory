@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "projects": {
+    "memoria-colectiva": {
+      "aliases": [".mapa", "mapa/memoria-colectiva"],
+      "category": "infrastructure",
+      "status": "active"
+    }
+  },
+  "hidden_projects": [],
+  "category_order": [
+    "research",
+    "project",
+    "product",
+    "infrastructure",
+    "tool",
+    "archive",
+    "other"
+  ]
+}

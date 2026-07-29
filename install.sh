@@ -5,6 +5,7 @@
 # usuarios de sistema, ni root. Los servicios y el director son opt-in.
 #
 #   ./install.sh --root <dir-del-corpus>            # nucleo, sin privilegios
+#   ./install.sh --root <dir-del-corpus> --structural-only
 #   sudo ./install.sh --root <dir-del-corpus> --with-systemd
 #
 # El director NO se instala aca: ver scripts/setup_director_users.sh y
@@ -21,6 +22,7 @@ PG_PORT=8898
 SERVE_USER="${MAPA_SERVE_USER:-mapa-reader}"
 SERVICE_GROUP="${MAPA_GROUP:-mapa}"
 LLM_CIDR="127.0.0.0/8"
+STRUCTURAL_ONLY=0
 
 usage() { sed -n '2,12p' "$0"; exit 0; }
 
@@ -30,6 +32,7 @@ while [[ $# -gt 0 ]]; do
     --code-home) CODE_HOME="$2"; shift 2;;
     --bind) BIND_ADDR="$2"; shift 2;;
     --llm-cidr) LLM_CIDR="$2"; shift 2;;
+    --structural-only) STRUCTURAL_ONLY=1; shift;;
     --with-systemd) WITH_SYSTEMD=1; shift;;
     -h|--help) usage;;
     *) echo "flag desconocido: $1" >&2; exit 2;;
@@ -94,6 +97,7 @@ MAPA_BIND_ALLOW_LAN=$BIND_ALLOW_LAN
 MAPA_PORT=$SERVE_PORT
 MAPA_PG_PORT=$PG_PORT
 MAPA_GROUP=$SERVICE_GROUP
+MAPA_STRUCTURAL_ONLY=$STRUCTURAL_ONLY
 EOF
   chmod 600 "$ENVFILE"
   echo "  escrito $ENVFILE"
@@ -114,8 +118,41 @@ MAPA_ROOT="$MAPA_ROOT" "$VENV_PY" "$REPO/tools/bootstrap_model.py"
 
 echo "== frontend =="
 if command -v npm >/dev/null 2>&1; then
-  (cd "$REPO/web" && npm install --silent && npm run build --silent) \
-    && echo "  atlas construido" || echo "  aviso: el build del atlas fallo (el indice funciona igual)"
+  WEB_STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+  WEB_RELEASE="$MAPA_DATA/web/releases/$WEB_STAMP"
+  if (
+    cd "$REPO/web"
+    npm install --silent
+    npm run build --silent
+    npm run build:lab --silent
+    npm run build:v3:atlas --silent
+    if [[ $STRUCTURAL_ONLY -eq 1 ]]; then
+      VITE_LAB_STRUCTURAL_ONLY=1 npm run build:v3:lab --silent
+    else
+      npm run build:v3:lab --silent
+    fi
+  ); then
+    mkdir -p "$WEB_RELEASE"
+    cp -a "$REPO/web/dist" "$WEB_RELEASE/dist"
+    cp -a "$REPO/web/dist-lab" "$WEB_RELEASE/dist-lab"
+    cp -a "$REPO/web/dist-v3-atlas" "$WEB_RELEASE/dist-v3-atlas"
+    cp -a "$REPO/web/dist-v3-lab" "$WEB_RELEASE/dist-v3-lab"
+    find "$WEB_RELEASE" -type d -exec chmod 755 {} +
+    find "$WEB_RELEASE" -type f -exec chmod 644 {} +
+    mkdir -p "$MAPA_DATA/web"
+    chmod 755 "$MAPA_DATA/web" "$MAPA_DATA/web/releases"
+    for bundle in dist dist-lab dist-v3-atlas dist-v3-lab; do
+      tmp_link="$MAPA_DATA/web/.${bundle}.${WEB_STAMP}"
+      ln -s "releases/$WEB_STAMP/$bundle" "$tmp_link"
+      if [[ -e "$MAPA_DATA/web/$bundle" && ! -L "$MAPA_DATA/web/$bundle" ]]; then
+        mv "$MAPA_DATA/web/$bundle" "$MAPA_DATA/web/${bundle}.previous.${WEB_STAMP}"
+      fi
+      mv -Tf "$tmp_link" "$MAPA_DATA/web/$bundle"
+    done
+    echo "  atlas + lab V1/V3 publicados de forma atomica ($WEB_STAMP)"
+  else
+    echo "  aviso: el build web fallo; no se modifico la version publicada"
+  fi
 fi
 
 if [[ $WITH_SYSTEMD -eq 1 ]]; then
@@ -131,6 +168,7 @@ if [[ $WITH_SYSTEMD -eq 1 ]]; then
         -e "s|@BIND_ADDR@|$BIND_ADDR|g"   -e "s|@SERVE_PORT@|$SERVE_PORT|g" \
         -e "s|@BIND_ALLOW_LAN@|$BIND_ALLOW_LAN|g" \
         -e "s|@BIND_CIDR@|$BIND_CIDR|g"   -e "s|@LLM_CIDR@|$LLM_CIDR|g" \
+        -e "s|@PG_PORT@|$PG_PORT|g"       -e "s|@STRUCTURAL_ONLY@|$STRUCTURAL_ONLY|g" \
         "$t" > "/etc/systemd/system/$unit"
     echo "  instalada $unit"
   done
@@ -148,7 +186,8 @@ Listo.
 
   Indexar:   MAPA_ROOT=$MAPA_ROOT $VENV_PY $CODE_HOME/tier1.py index --scope total
   Buscar:    MAPA_ROOT=$MAPA_ROOT $VENV_PY $CODE_HOME/tier1.py search "tu consulta"
-  Servir:    MAPA_ROOT=$MAPA_ROOT $VENV_PY $CODE_HOME/serve.py     -> http://$BIND_ADDR:$SERVE_PORT/atlas/
+  Servir:    MAPA_ROOT=$MAPA_ROOT $VENV_PY $CODE_HOME/serve.py     -> http://$BIND_ADDR:$SERVE_PORT/atlas-v3/
+  Lab V3:    http://$BIND_ADDR:$PG_PORT/lab-v3/descubrir  (si habilitaste mapa-playground)
 
 Probalo primero con el corpus de ejemplo: examples/README.md
 EOF

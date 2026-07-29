@@ -23,6 +23,8 @@ __pycache__/
 node_modules/
 dist/
 dist-lab/
+dist-v3-atlas/
+dist-v3-lab/
 
 # Credenciales: no deberian existir en el arbol, pero por si acaso.
 *-config/

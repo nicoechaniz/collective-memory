@@ -33,18 +33,28 @@ from urllib.parse import urlparse, parse_qs  # noqa: E402
 import discover  # noqa: E402
 import playground_queue as pq  # noqa: E402
 import tier1  # noqa: E402
+from ui_v2_api import V2API  # noqa: E402
+from ui_v2_sessions import SessionStore  # noqa: E402
 
 BIND = safe_bind()
 PORT = int(os.environ.get("MAPA_PG_PORT", "8898"))
+STRUCTURAL_ONLY = os.environ.get("MAPA_STRUCTURAL_ONLY", "0") == "1"
+STRUCTURAL_OPERATORS = ("latent_bridge", "cluster_frontier", "outlier")
 USERS_PATH = os.path.join(DMAPA, "discovery", "users.json")
 LAB_DIST = os.path.join(DMAPA, "web", "dist-lab")
+LAB_V2_DIST = os.path.join(DMAPA, "web", "dist-v2-lab")
+LAB_V3_DIST = os.path.join(DMAPA, "web", "dist-v3-lab")
 UI_LINK = os.path.join(DMAPA, "ui")
 Q_MAX = 512
 BODY_MAX = 16 * 1024
 _sem = threading.Semaphore(4)
+V2_API = V2API(UI_LINK, allow_vector=False)
+_sessions = None
 
 CSP = ("default-src 'self'; script-src 'self'; worker-src 'self' blob:; "
-       "img-src 'self' data:; style-src 'self' 'unsafe-inline'")
+       "connect-src 'self'; img-src 'self' data:; font-src 'self'; "
+       "style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; "
+       "frame-ancestors 'none'; form-action 'self'")
 
 # Jueces ofrecidos en el Lab. La lista es también el WHITELIST del servidor: por la API
 # solo se puede pedir uno de estos providers, nunca un modelo arbitrario. Las descripciones
@@ -118,6 +128,20 @@ def user_from_token(token):
         if not u.get("disabled") and hmac.compare_digest(u.get("sha256", ""), digest):
             return name
     return None
+
+
+def user_is_active(name):
+    user = load_users().get(name) or {}
+    return bool(user) and not user.get("disabled")
+
+
+def sessions():
+    global _sessions
+    if _sessions is None:
+        raw = os.environ.get("MAPA_SESSION_COOKIE", f"mapa_pg_session_{PORT}")
+        cookie_name = "".join(c if c.isalnum() or c == "_" else "_" for c in raw)
+        _sessions = SessionStore(cookie_name, secure=os.environ.get("MAPA_SESSION_SECURE") == "1")
+    return _sessions
 
 
 def cli_user(argv):
@@ -254,13 +278,16 @@ def _last_request_ts():
 
 # ---------- Helpers HTTP (patrón serve.py) ----------
 
-def _send(h, code, obj):
+def _send(h, code, obj, headers=None):
     body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
     h.send_response(code)
     h.send_header("Content-Type", "application/json; charset=utf-8")
     h.send_header("Content-Length", str(len(body)))
     h.send_header("X-Content-Type-Options", "nosniff")
     h.send_header("Referrer-Policy", "no-referrer")
+    h.send_header("Cache-Control", "no-cache")
+    for key, value in (headers or {}).items():
+        h.send_header(key, value)
     h.end_headers()
     h.wfile.write(body)
 
@@ -291,6 +318,7 @@ def _send_file(h, path, mime=None):
     h.send_header("Content-Length", str(len(body)))
     h.send_header("X-Content-Type-Options", "nosniff")
     h.send_header("Referrer-Policy", "no-referrer")
+    h.send_header("Cache-Control", "no-cache")
     if mime.startswith("text/html"):
         h.send_header("Content-Security-Policy", CSP)
     h.end_headers()
@@ -325,16 +353,40 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     # --- auth ---
-    def _user(self):
+    def _identity(self):
+        cached = getattr(self, "_identity_cache", None)
+        if cached is not None:
+            return cached
         auth = self.headers.get("Authorization", "")
         token = auth[7:].strip() if auth.startswith("Bearer ") else ""
-        return user_from_token(token)
+        user = user_from_token(token)
+        if user:
+            self._identity_cache = {"user": user, "mode": "bearer", "session": None}
+            return self._identity_cache
+        session = sessions().authenticate(self.headers.get("Cookie", ""), user_is_active)
+        self._identity_cache = ({"user": session["user"], "mode": "session", "session": session}
+                                if session else {})
+        return self._identity_cache
+
+    def _user(self):
+        return self._identity().get("user")
+
+    def _same_origin(self):
+        origin = self.headers.get("Origin", "")
+        if not origin:
+            return False
+        parsed = urlparse(origin)
+        return parsed.scheme in {"http", "https"} and parsed.netloc == self.headers.get("Host", "")
 
     # --- GET ---
     def do_GET(self):
         u = urlparse(self.path)
         qs = parse_qs(u.query)
         try:
+            if u.path == "/lab-v3" or u.path.startswith("/lab-v3/"):
+                return _static(self, LAB_V3_DIST, "/lab-v3/", spa=True, index="v3-lab.html")
+            if u.path == "/lab-v2" or u.path.startswith("/lab-v2/"):
+                return _static(self, LAB_V2_DIST, "/lab-v2/", spa=True, index="v2-lab.html")
             if u.path == "/lab" or u.path.startswith("/lab/"):
                 return _static(self, LAB_DIST, "/lab/", spa=True, index="lab.html")
             if u.path == "/pg/health":
@@ -343,8 +395,10 @@ class Handler(BaseHTTPRequestHandler):
                 cands = con.execute("SELECT count(*) FROM candidates").fetchone()[0]
                 con.close()
                 return _send(self, 200, {"service": "discovery playground", "sandbox": True,
+                                         "mode": "structural-only" if STRUCTURAL_ONLY else "full",
+                                         "llm_screening": not STRUCTURAL_ONLY,
                                          "jobs": jobs, "candidates": cands,
-                                         "operators": list(pq.VALID_OPERATORS)})
+                                         "operators": list(STRUCTURAL_OPERATORS if STRUCTURAL_ONLY else pq.VALID_OPERATORS)})
             if u.path == "/search":
                 q = (qs.get("q", [""])[0] or "").strip()
                 if not q:
@@ -366,15 +420,26 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/doc":
                 d = tier1.get_doc(qs.get("id", [""])[0] or "")
                 return _send(self, 200, d) if d else _send(self, 404, {"error": "not found"})
+            if u.path.startswith("/ui/v2"):
+                code, obj = V2_API.dispatch(u.path, qs)
+                return _send(self, code, obj)
             if u.path.startswith("/ui/"):
                 return self._handle_ui(u, qs)
             # --- autenticado de acá para abajo ---
-            user = self._user()
+            identity = self._identity()
+            user = identity.get("user")
             if not user:
-                return _send(self, 401, {"error": "token requerido (Authorization: Bearer)"})
+                return _send(self, 401, {"error": "sesión o token Bearer requerido"})
+            if u.path == "/pg/session":
+                csrf = sessions().rotate_csrf(identity["session"]["session_hash"]) if identity["mode"] == "session" else None
+                return _send(self, 200, {"user": user, "auth_mode": identity["mode"], "csrf": csrf,
+                                         "absolute_expires": (identity.get("session") or {}).get("absolute_expires")})
             if u.path == "/pg/operators":
-                return _send(self, 200, {"operators": list(pq.VALID_OPERATORS),
-                                         "judges": JUDGES, "default_judge": DEFAULT_PROVIDER,
+                return _send(self, 200, {"operators": list(STRUCTURAL_OPERATORS if STRUCTURAL_ONLY else pq.VALID_OPERATORS),
+                                         "judges": [] if STRUCTURAL_ONLY else JUDGES,
+                                         "default_judge": "" if STRUCTURAL_ONLY else DEFAULT_PROVIDER,
+                                         "mode": "structural-only" if STRUCTURAL_ONLY else "full",
+                                         "llm_screening": not STRUCTURAL_ONLY,
                                          "limits": {"limit_max": pq.LIMIT_MAX,
                                                     "queued_per_user": pq.MAX_QUEUED_PER_USER,
                                                     "jobs_per_day": pq.MAX_JOBS_PER_USER_DAY}})
@@ -415,6 +480,21 @@ class Handler(BaseHTTPRequestHandler):
                 scope = (qs.get("scope", ["all"])[0] or "all")
                 status = qs.get("status", [None])[0]
                 dtype = qs.get("type", [None])[0]
+                text_q = (qs.get("q", [""])[0] or "").strip()
+                if len(text_q) > 160:
+                    return _send(self, 413, {"error": "q too long", "max": 160})
+                try:
+                    limit = max(1, min(int(qs.get("limit", ["200"])[0]), 200))
+                    offset = max(0, min(int(qs.get("offset", ["0"])[0]), 1_000_000))
+                except (TypeError, ValueError):
+                    return _send(self, 400, {"error": "limit/offset inválidos"})
+                surprise_raw = qs.get("min_surprise", [None])[0]
+                try:
+                    min_surprise = None if surprise_raw in (None, "") else float(surprise_raw)
+                except (TypeError, ValueError):
+                    return _send(self, 400, {"error": "min_surprise inválido"})
+                if min_surprise is not None and not 0 <= min_surprise <= 1:
+                    return _send(self, 400, {"error": "min_surprise debe estar entre 0 y 1"})
                 q = ("SELECT id, owner, discovery_type, status, title, novelty_score, support_score, "
                      "unexpectedness_score, flags_json, created_at FROM candidates WHERE 1=1")
                 params = []
@@ -427,11 +507,20 @@ class Handler(BaseHTTPRequestHandler):
                 if dtype:
                     q += " AND discovery_type=?"
                     params.append(dtype)
-                q += " ORDER BY created_at DESC LIMIT 200"
+                if text_q:
+                    escaped = text_q.replace("!", "!!").replace("%", "!%").replace("_", "!_")
+                    q += " AND (title LIKE ? ESCAPE '!' OR claim LIKE ? ESCAPE '!')"
+                    params.extend((f"%{escaped}%", f"%{escaped}%"))
+                if min_surprise is not None:
+                    q += " AND unexpectedness_score>=?"
+                    params.append(min_surprise)
                 con = pq.open_jobs()
-                rows = [dict(r) for r in con.execute(q, params)]
+                total = con.execute(f"SELECT count(*) FROM ({q})", params).fetchone()[0]
+                q += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+                rows = [dict(r) for r in con.execute(q, params + [limit, offset])]
                 con.close()
-                return _send(self, 200, {"user": user, "candidates": rows})
+                return _send(self, 200, {"user": user, "total": total, "shown": len(rows),
+                                         "offset": offset, "candidates": rows})
             if u.path == "/pg/graph":
                 # Grafo de TUS candidatos (no de los hallazgos publicados: eso es el atlas).
                 # Nodos: candidato + sus documentos fuente. Aristas tipadas por rol.
@@ -442,6 +531,14 @@ class Handler(BaseHTTPRequestHandler):
                 if scope == "mine":
                     q += " AND owner=?"
                     params.append(user)
+                status = (qs.get("status", [""])[0] or "")[:64]
+                dtype = (qs.get("type", [""])[0] or "")[:64]
+                if status:
+                    q += " AND status=?"
+                    params.append(status)
+                if dtype:
+                    q += " AND discovery_type=?"
+                    params.append(dtype)
                 cands = [dict(r) for r in con.execute(q, params)]
                 nodes, edges, seen = {}, {}, set()
                 # Siembra circular: ForceAtlas2 NO puede separar nodos que arrancan en el
@@ -552,9 +649,6 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urlparse(self.path)
         try:
-            user = self._user()
-            if not user:
-                return _send(self, 401, {"error": "token requerido (Authorization: Bearer)"})
             if (self.headers.get("Content-Type") or "").split(";")[0].strip() != "application/json":
                 return _send(self, 415, {"error": "Content-Type debe ser application/json"})
             try:
@@ -569,7 +663,36 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 return _send(self, 400, {"error": "JSON inválido"})
 
+            if u.path == "/pg/session":
+                token = str(body.get("token") or "")
+                user = user_from_token(token)
+                if not user:
+                    return _send(self, 401, {"error": "token inválido"})
+                raw, csrf, expires = sessions().create(user)
+                return _send(self, 201, {"user": user, "auth_mode": "session", "csrf": csrf,
+                                         "absolute_expires": expires},
+                             {"Set-Cookie": sessions().cookie_value(raw)})
+
+            identity = self._identity()
+            user = identity.get("user")
+            if not user:
+                return _send(self, 401, {"error": "sesión o token Bearer requerido"})
+            if identity["mode"] == "session":
+                if not self._same_origin():
+                    return _send(self, 403, {"error": "origen inválido"})
+                if not sessions().verify_csrf(identity["session"], self.headers.get("X-CSRF-Token", "")):
+                    return _send(self, 403, {"error": "CSRF inválido"})
+
             if u.path == "/pg/run":
+                if STRUCTURAL_ONLY:
+                    if str(body.get("task") or "").strip():
+                        return _send(self, 503, {"error": "agente dirigido desactivado: esta instancia ofrece operadores estructurales sin LLM"})
+                    ops = body.get("operators")
+                    if ops == "all":
+                        ops = list(STRUCTURAL_OPERATORS)
+                    if not isinstance(ops, list) or not ops or any(o not in STRUCTURAL_OPERATORS for o in ops):
+                        return _send(self, 400, {"error": "solo están habilitados: " + ", ".join(STRUCTURAL_OPERATORS)})
+                    body["operators"] = ops
                 # Whitelist de juez: por la API solo los providers de JUDGES, nunca un modelo
                 # arbitrario. Ausente → el juez por defecto (gemma).
                 prov = body.get("provider") or DEFAULT_PROVIDER
@@ -637,6 +760,8 @@ class Handler(BaseHTTPRequestHandler):
                 finally:
                     con.close()
             if u.path == "/pg/director":
+                if STRUCTURAL_ONLY:
+                    return _send(self, 503, {"error": "director desactivado en modo estructural sin LLM"})
                 # Botón: valida contraseña + rate limit, deja un request file. NO ejecuta nada.
                 import time
                 pw = str(body.get("password") or "")
@@ -664,7 +789,22 @@ class Handler(BaseHTTPRequestHandler):
     def _method_not_allowed(self):
         return _send(self, 405, {"error": "method not allowed"})
 
-    do_PUT = do_DELETE = do_PATCH = _method_not_allowed
+    def do_DELETE(self):
+        u = urlparse(self.path)
+        if u.path != "/pg/session":
+            return self._method_not_allowed()
+        identity = self._identity()
+        if not identity.get("user") or identity.get("mode") != "session":
+            return _send(self, 401, {"error": "sesión requerida"})
+        if not self._same_origin():
+            return _send(self, 403, {"error": "origen inválido"})
+        if not sessions().verify_csrf(identity["session"], self.headers.get("X-CSRF-Token", "")):
+            return _send(self, 403, {"error": "CSRF inválido"})
+        sessions().delete(self.headers.get("Cookie", ""))
+        return _send(self, 200, {"status": "signed_out"},
+                     {"Set-Cookie": sessions().cookie_value("", clear=True)})
+
+    do_PUT = do_PATCH = _method_not_allowed
 
 
 def main():

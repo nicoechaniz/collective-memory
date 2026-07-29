@@ -24,6 +24,32 @@ body {
     linear-gradient(135deg, #0f1512 0%, #1c2119 55%, #0c1011 100%);
 }
 
+.lab-mode-notice {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.35rem 0.9rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(242, 166, 90, 0.48);
+  border-left: 4px solid #f2a65a;
+  background: linear-gradient(90deg, rgba(242, 166, 90, 0.2), rgba(20, 29, 25, 0.88));
+  color: #fff7e8;
+  font-family: Georgia, serif;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.lab-mode-notice strong {
+  color: #f7bd7e;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .lab-mode-notice {
+    grid-template-columns: 1fr;
+  }
+}
+
 button,
 select {
   border: 1px solid rgba(244, 234, 214, 0.22);
