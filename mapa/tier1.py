@@ -41,6 +41,7 @@ from mapa_config import (  # noqa: E402
     ROOT, DMAPA, DB, EMB_CACHE, MANIFEST, MAPA, POLICY_PATH, AUDIT_JSON, AUDIT_MD,
     MODEL_ID, model_cache_dir,
 )
+from exchange import assert_publication_stable  # noqa: E402
 
 warnings.filterwarnings("ignore")
 
@@ -1213,6 +1214,10 @@ def do_index_fts_only(scope, policy, phash, error):
 
 
 def ro(load_vector=False):
+    # A reviewed publication replaces corpus bytes, index and Atlas as one
+    # supported generation.  Refuse reads during that bounded transition rather
+    # than exposing an unreceipted mixed view.
+    assert_publication_stable(DMAPA)
     if not os.path.exists(DB):
         print("[tier1] no hay indice; corre: tier1.py index --scope curated", file=sys.stderr)
         sys.exit(1)

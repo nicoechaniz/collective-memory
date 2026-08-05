@@ -79,7 +79,7 @@ VENV="$(dirname "$CODE_HOME")/$(basename "$CODE_HOME")-venv"
 [[ -d "$VENV" ]] || python3 -m venv "$VENV"
 VENV_PY="$VENV/bin/python"
 "$VENV_PY" -m pip install -q --upgrade pip
-"$VENV_PY" -m pip install -q -r "$REPO/requirements.txt"
+"$VENV_PY" -m pip install -q -r "$REPO/requirements.txt" -r "$REPO/requirements-exchange.txt"
 echo "  dependencias instaladas"
 
 echo "== configuracion =="

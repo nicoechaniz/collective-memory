@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mapa_config import DMAPA, safe_bind  # noqa: E402
 import tier1  # noqa: E402
 from ui_v2_api import V2API  # noqa: E402
+from exchange import ExchangeError, assert_publication_stable  # noqa: E402
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer  # noqa: E402
 from urllib.parse import urlparse, parse_qs, unquote  # noqa: E402
@@ -143,6 +144,10 @@ def _read_json(path):
 
 
 def _ui_root():
+    try:
+        assert_publication_stable(DMAPA)
+    except ExchangeError:
+        return None
     if not os.path.islink(UI_LINK) and not os.path.isdir(UI_LINK):
         return None
     root = os.path.realpath(UI_LINK)

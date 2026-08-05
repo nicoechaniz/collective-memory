@@ -14,6 +14,7 @@ except ImportError:  # runtime historico del host, anterior a mapa_config.py
     _ROOT = os.path.abspath(_ROOT_RAW)
     DMAPA = os.path.abspath(os.environ.get("MAPA_DATA", os.path.join(_ROOT, ".mapa")))
 import tier1
+from exchange import ExchangeError, assert_publication_stable
 
 DB_NAME = "ui_v2.db"
 MAX_LIMIT = 500
@@ -57,6 +58,7 @@ class V2API:
         return os.path.join(root, DB_NAME)
 
     def _connect(self):
+        assert_publication_stable(DMAPA)
         path = self._path()
         if not os.path.isfile(path):
             raise FileNotFoundError(path)
@@ -92,6 +94,8 @@ class V2API:
             con = self._connect()
         except FileNotFoundError:
             return 503, {"error": "ui v2 projection missing", "hint": "rebuild ui_v2.db"}
+        except ExchangeError:
+            return 503, {"error": "publication generation is not yet stable"}
         try:
             meta = self._meta(con)
             route = path.removeprefix("/ui/v2").rstrip("/") or "/bootstrap"

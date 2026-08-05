@@ -1,0 +1,4 @@
+# Small isolated dependency set for the closed exchange boundary.  The main
+# semantic stack remains optional for contract and crash-recovery tests.
+cryptography==50.0.0
+jsonschema==4.26.0

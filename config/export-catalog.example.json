@@ -1,0 +1,25 @@
+{
+  "schema": "collective-export-catalog/v1",
+  "policy_version": "policy:v1",
+  "scope_id": "public",
+  "entries": [
+    {
+      "artifact_id": "artifact:synthetic-example:v1",
+      "logical_id": "logical:synthetic-example",
+      "relative_path": "mapa/synthetic-example.md",
+      "media_type": "text/markdown; charset=utf-8",
+      "authors": ["author:synthetic-example"],
+      "source_refs": [
+        {
+          "id": "source:synthetic-example",
+          "hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "license": "MIT",
+      "consent_scope": "public",
+      "classification": "public",
+      "predecessor_artifact_id": null,
+      "state": "active"
+    }
+  ]
+}

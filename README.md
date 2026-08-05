@@ -146,6 +146,15 @@ Two design decisions carry most of the weight:
 
 Full write-up in [`docs/arquitectura.md`](docs/arquitectura.md).
 
+### Supported external exchange
+
+`exchange/v1` adds two deliberately separate boundaries: an immutable,
+provenance-complete export and an Ed25519-consented, independently reviewed
+publication transaction. It exposes logical IDs and hashes rather than SQLite,
+host paths, commands, or credentials, and shares the librarian writer lock for
+commit/recovery. See [`docs/exchange-v1.md`](docs/exchange-v1.md) for the
+contracts, CLI, crash semantics, threat boundary, and Daimon Matrix integration.
+
 ## Tech stack
 
 | Layer | Tools |

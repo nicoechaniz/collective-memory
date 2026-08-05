@@ -1,0 +1,475 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Mar-IA-no/collective-memory/schemas/exchange/v1/contracts.schema.json",
+  "title": "collective-memory exchange v1 closed contracts",
+  "oneOf": [
+    {"$ref": "#/$defs/catalog"},
+    {"$ref": "#/$defs/exportManifest"},
+    {"$ref": "#/$defs/exportPage"},
+    {"$ref": "#/$defs/draft"},
+    {"$ref": "#/$defs/preview"},
+    {"$ref": "#/$defs/evidenceEnvelope"},
+    {"$ref": "#/$defs/request"},
+    {"$ref": "#/$defs/plan"},
+    {"$ref": "#/$defs/receipt"}
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,255}$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "hash"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "hash": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "hash"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "hash": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "targetRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["receipt_id", "receipt_hash", "content_hash", "content_length", "state"],
+      "properties": {
+        "receipt_id": {"$ref": "#/$defs/identifier"},
+        "receipt_hash": {"$ref": "#/$defs/hash"},
+        "content_hash": {"$ref": "#/$defs/hash"},
+        "content_length": {"type": "integer", "minimum": 1, "maximum": 1048576},
+        "state": {"enum": ["active", "tombstone"]}
+      }
+    },
+    "catalogEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "logical_id",
+        "relative_path",
+        "media_type",
+        "authors",
+        "source_refs",
+        "license",
+        "consent_scope",
+        "classification",
+        "predecessor_artifact_id",
+        "state"
+      ],
+      "properties": {
+        "artifact_id": {"$ref": "#/$defs/identifier"},
+        "logical_id": {"$ref": "#/$defs/identifier"},
+        "relative_path": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^[^/\\\\][^\\\\]*$"}
+          ]
+        },
+        "media_type": {"enum": ["text/markdown; charset=utf-8", "text/plain; charset=utf-8"]},
+        "authors": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "source_refs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/sourceRef"}
+        },
+        "license": {"$ref": "#/$defs/identifier"},
+        "consent_scope": {"$ref": "#/$defs/identifier"},
+        "classification": {"$ref": "#/$defs/identifier"},
+        "predecessor_artifact_id": {
+          "oneOf": [{"type": "null"}, {"$ref": "#/$defs/identifier"}]
+        },
+        "state": {"enum": ["active", "tombstone"]}
+      }
+    },
+    "catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "policy_version", "scope_id", "entries"],
+      "properties": {
+        "schema": {"const": "collective-export-catalog/v1"},
+        "policy_version": {"$ref": "#/$defs/identifier"},
+        "scope_id": {"$ref": "#/$defs/identifier"},
+        "entries": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {"$ref": "#/$defs/catalogEntry"}
+        }
+      }
+    },
+    "exportArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "logical_id",
+        "media_type",
+        "authors",
+        "source_refs",
+        "license",
+        "consent_scope",
+        "classification",
+        "predecessor_artifact_id",
+        "state",
+        "content_hash",
+        "content_length",
+        "content_ref"
+      ],
+      "properties": {
+        "artifact_id": {"$ref": "#/$defs/identifier"},
+        "logical_id": {"$ref": "#/$defs/identifier"},
+        "media_type": {"enum": ["text/markdown; charset=utf-8", "text/plain; charset=utf-8"]},
+        "authors": {"type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": {"$ref": "#/$defs/identifier"}},
+        "source_refs": {"type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": {"$ref": "#/$defs/sourceRef"}},
+        "license": {"$ref": "#/$defs/identifier"},
+        "consent_scope": {"$ref": "#/$defs/identifier"},
+        "classification": {"$ref": "#/$defs/identifier"},
+        "predecessor_artifact_id": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/identifier"}]},
+        "state": {"enum": ["active", "tombstone"]},
+        "content_hash": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/hash"}]},
+        "content_length": {"type": "integer", "minimum": 0, "maximum": 2097152},
+        "content_ref": {"oneOf": [{"type": "null"}, {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}]}
+      }
+    },
+    "exportManifestBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer_instance",
+        "producer_release",
+        "policy_version",
+        "scope_id",
+        "projection",
+        "created_at",
+        "predecessor_generation",
+        "state_digest",
+        "artifact_count",
+        "total_content_bytes",
+        "artifacts"
+      ],
+      "properties": {
+        "producer_instance": {"$ref": "#/$defs/identifier"},
+        "producer_release": {"$ref": "#/$defs/identifier"},
+        "policy_version": {"$ref": "#/$defs/identifier"},
+        "scope_id": {"$ref": "#/$defs/identifier"},
+        "projection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["index_generation", "ui_generation"],
+          "properties": {
+            "index_generation": {"oneOf": [{"type": "null"}, {"type": "string", "minLength": 1, "maxLength": 128}]},
+            "ui_generation": {"oneOf": [{"type": "null"}, {"type": "string", "minLength": 1, "maxLength": 256}]}
+          }
+        },
+        "created_at": {"$ref": "#/$defs/timestamp"},
+        "predecessor_generation": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/identifier"}]},
+        "state_digest": {"$ref": "#/$defs/hash"},
+        "artifact_count": {"type": "integer", "minimum": 0, "maximum": 4096},
+        "total_content_bytes": {"type": "integer", "minimum": 0, "maximum": 67108864},
+        "artifacts": {"type": "array", "maxItems": 4096, "items": {"$ref": "#/$defs/exportArtifact"}}
+      }
+    },
+    "exportManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "generation_id", "manifest_hash", "body"],
+      "properties": {
+        "schema": {"const": "collective-export-manifest/v1"},
+        "generation_id": {"$ref": "#/$defs/identifier"},
+        "manifest_hash": {"$ref": "#/$defs/hash"},
+        "body": {"$ref": "#/$defs/exportManifestBody"}
+      }
+    },
+    "exportPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "generation_id", "manifest_hash", "offset", "limit", "artifacts", "next_cursor"],
+      "properties": {
+        "schema": {"const": "collective-export-page/v1"},
+        "generation_id": {"$ref": "#/$defs/identifier"},
+        "manifest_hash": {"$ref": "#/$defs/hash"},
+        "offset": {"type": "integer", "minimum": 0},
+        "limit": {"type": "integer", "minimum": 1, "maximum": 256},
+        "artifacts": {"type": "array", "maxItems": 256, "items": {"$ref": "#/$defs/exportArtifact"}},
+        "next_cursor": {"oneOf": [{"type": "null"}, {"type": "string", "maxLength": 4096}]}
+      }
+    },
+    "draft": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "action",
+        "requester_id",
+        "subject_id",
+        "target_id",
+        "source_refs",
+        "source_checkpoint",
+        "classification",
+        "policy_version",
+        "media_type",
+        "title",
+        "body",
+        "predecessor_receipt_id",
+        "predecessor_receipt_hash"
+      ],
+      "properties": {
+        "schema": {"const": "collective-publication-draft/v1"},
+        "action": {"enum": ["publish", "successor", "tombstone"]},
+        "requester_id": {"$ref": "#/$defs/identifier"},
+        "subject_id": {"$ref": "#/$defs/identifier"},
+        "target_id": {"$ref": "#/$defs/identifier"},
+        "source_refs": {"type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": {"$ref": "#/$defs/sourceRef"}},
+        "source_checkpoint": {"$ref": "#/$defs/checkpoint"},
+        "classification": {"$ref": "#/$defs/identifier"},
+        "policy_version": {"$ref": "#/$defs/identifier"},
+        "media_type": {"const": "text/markdown; charset=utf-8"},
+        "title": {"type": "string", "maxLength": 1024},
+        "body": {"type": "string", "maxLength": 1048576},
+        "predecessor_receipt_id": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/identifier"}]},
+        "predecessor_receipt_hash": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/hash"}]}
+      }
+    },
+    "rendered": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content_hash", "content_length", "media_type", "bytes_b64"],
+      "properties": {
+        "content_hash": {"$ref": "#/$defs/hash"},
+        "content_length": {"type": "integer", "minimum": 1, "maximum": 1048576},
+        "media_type": {"const": "text/markdown; charset=utf-8"},
+        "bytes_b64": {"type": "string", "maxLength": 1398104}
+      }
+    },
+    "previewBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["draft_hash", "state_hash", "before", "rendered"],
+      "properties": {
+        "draft_hash": {"$ref": "#/$defs/hash"},
+        "state_hash": {"$ref": "#/$defs/hash"},
+        "before": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/targetRecord"}]},
+        "rendered": {"$ref": "#/$defs/rendered"}
+      }
+    },
+    "preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "preview_id", "preview_hash", "body"],
+      "properties": {
+        "schema": {"const": "collective-publication-preview/v1"},
+        "preview_id": {"$ref": "#/$defs/identifier"},
+        "preview_hash": {"$ref": "#/$defs/hash"},
+        "body": {"$ref": "#/$defs/previewBody"}
+      }
+    },
+    "evidenceBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "kind",
+        "evidence_id",
+        "issuer",
+        "subject_id",
+        "requester_id",
+        "action",
+        "target_id",
+        "source_checkpoint",
+        "classification",
+        "policy_version",
+        "preview_hash",
+        "content_hash",
+        "issued_at",
+        "not_before",
+        "not_after"
+      ],
+      "properties": {
+        "schema": {"const": "collective-publication-evidence/v1"},
+        "kind": {"enum": ["consent", "review"]},
+        "evidence_id": {"$ref": "#/$defs/identifier"},
+        "issuer": {"$ref": "#/$defs/identifier"},
+        "subject_id": {"$ref": "#/$defs/identifier"},
+        "requester_id": {"$ref": "#/$defs/identifier"},
+        "action": {"enum": ["publish", "successor", "tombstone"]},
+        "target_id": {"$ref": "#/$defs/identifier"},
+        "source_checkpoint": {"$ref": "#/$defs/checkpoint"},
+        "classification": {"$ref": "#/$defs/identifier"},
+        "policy_version": {"$ref": "#/$defs/identifier"},
+        "preview_hash": {"$ref": "#/$defs/hash"},
+        "content_hash": {"$ref": "#/$defs/hash"},
+        "issued_at": {"$ref": "#/$defs/timestamp"},
+        "not_before": {"$ref": "#/$defs/timestamp"},
+        "not_after": {"$ref": "#/$defs/timestamp"}
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alg", "kid", "value"],
+      "properties": {
+        "alg": {"const": "Ed25519"},
+        "kid": {"$ref": "#/$defs/identifier"},
+        "value": {"type": "string", "minLength": 86, "maxLength": 86}
+      }
+    },
+    "evidenceEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "body", "signature"],
+      "properties": {
+        "schema": {"const": "collective-publication-evidence/v1"},
+        "body": {"$ref": "#/$defs/evidenceBody"},
+        "signature": {"$ref": "#/$defs/signature"}
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "draft", "preview_hash", "idempotency_key", "consent", "review"],
+      "properties": {
+        "schema": {"const": "collective-publication-request/v1"},
+        "draft": {"$ref": "#/$defs/draft"},
+        "preview_hash": {"$ref": "#/$defs/hash"},
+        "idempotency_key": {"$ref": "#/$defs/identifier"},
+        "consent": {"$ref": "#/$defs/evidenceEnvelope"},
+        "review": {"$ref": "#/$defs/evidenceEnvelope"}
+      }
+    },
+    "after": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content_hash", "content_length", "media_type", "state"],
+      "properties": {
+        "content_hash": {"$ref": "#/$defs/hash"},
+        "content_length": {"type": "integer", "minimum": 1, "maximum": 1048576},
+        "media_type": {"const": "text/markdown; charset=utf-8"},
+        "state": {"enum": ["active", "tombstone"]}
+      }
+    },
+    "planBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_hash", "preview_hash", "target_id", "action", "before", "after", "consent_hash", "review_hash"],
+      "properties": {
+        "request_hash": {"$ref": "#/$defs/hash"},
+        "preview_hash": {"$ref": "#/$defs/hash"},
+        "target_id": {"$ref": "#/$defs/identifier"},
+        "action": {"enum": ["publish", "successor", "tombstone"]},
+        "before": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/targetRecord"}]},
+        "after": {"$ref": "#/$defs/after"},
+        "consent_hash": {"$ref": "#/$defs/hash"},
+        "review_hash": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "plan_id", "plan_hash", "body"],
+      "properties": {
+        "schema": {"const": "collective-publication-plan/v1"},
+        "plan_id": {"$ref": "#/$defs/identifier"},
+        "plan_hash": {"$ref": "#/$defs/hash"},
+        "body": {"$ref": "#/$defs/planBody"}
+      }
+    },
+    "evidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "evidence_hash"],
+      "properties": {
+        "evidence_id": {"$ref": "#/$defs/identifier"},
+        "evidence_hash": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index_generation", "ui_generation", "index_content_hash"],
+      "properties": {
+        "index_generation": {"type": "string", "minLength": 1, "maxLength": 128},
+        "ui_generation": {"type": "string", "minLength": 1, "maxLength": 256},
+        "index_content_hash": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "receiptBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transaction_id",
+        "request_hash",
+        "plan_id",
+        "idempotency_key",
+        "target_id",
+        "action",
+        "before",
+        "after",
+        "source_refs",
+        "source_checkpoint",
+        "classification",
+        "policy_version",
+        "consent",
+        "review",
+        "projection",
+        "committed_at",
+        "status"
+      ],
+      "properties": {
+        "transaction_id": {"$ref": "#/$defs/identifier"},
+        "request_hash": {"$ref": "#/$defs/hash"},
+        "plan_id": {"$ref": "#/$defs/identifier"},
+        "idempotency_key": {"$ref": "#/$defs/identifier"},
+        "target_id": {"$ref": "#/$defs/identifier"},
+        "action": {"enum": ["publish", "successor", "tombstone"]},
+        "before": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/targetRecord"}]},
+        "after": {"$ref": "#/$defs/after"},
+        "source_refs": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"$ref": "#/$defs/sourceRef"}},
+        "source_checkpoint": {"$ref": "#/$defs/checkpoint"},
+        "classification": {"$ref": "#/$defs/identifier"},
+        "policy_version": {"$ref": "#/$defs/identifier"},
+        "consent": {"$ref": "#/$defs/evidenceRef"},
+        "review": {"$ref": "#/$defs/evidenceRef"},
+        "projection": {"$ref": "#/$defs/projection"},
+        "committed_at": {"$ref": "#/$defs/timestamp"},
+        "status": {"const": "committed"}
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "receipt_id", "receipt_hash", "body"],
+      "properties": {
+        "schema": {"const": "collective-publication-receipt/v1"},
+        "receipt_id": {"$ref": "#/$defs/identifier"},
+        "receipt_hash": {"$ref": "#/$defs/hash"},
+        "body": {"$ref": "#/$defs/receiptBody"}
+      }
+    }
+  }
+}

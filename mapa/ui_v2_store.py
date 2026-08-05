@@ -315,12 +315,17 @@ def build(ui_root=None, output_path=None):
 
     # vec0 guarda los rowids publicados en una tabla sombra consultable sin
     # cargar sqlite-vec. Asi el builder visual no depende de CUDA ni del modelo.
-    vectorized = {
-        row[0] for row in source.execute(
-            "SELECT DISTINCT c.doc_id FROM chunks c "
-            "JOIN chunks_vec_rowids v ON v.rowid=c.id"
-        )
-    }
+    tables = {row[0] for row in source.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    vectorized = (
+        {
+            row[0] for row in source.execute(
+                "SELECT DISTINCT c.doc_id FROM chunks c "
+                "JOIN chunks_vec_rowids v ON v.rowid=c.id"
+            )
+        }
+        if "chunks_vec_rowids" in tables
+        else set()
+    )
     project_counts = defaultdict(lambda: [0, 0, 0])
     docs_rows = []
     for row in source.execute(

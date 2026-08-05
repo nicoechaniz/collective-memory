@@ -1,0 +1,13 @@
+{
+  "schema": "collective-exchange-config/v1",
+  "producer_instance": "collective:synthetic-example",
+  "producer_release": "collective:release:example",
+  "policy_version": "policy:v1",
+  "targets": [
+    {
+      "target_id": "collective:article:example",
+      "relative_path": "published/example.md"
+    }
+  ],
+  "index_scope": "total"
+}

@@ -35,6 +35,8 @@ COPY    director_mcp.py                 mapa/director_mcp.py
 COPY    director_button_watch.py        mapa/director_button_watch.py
 COPY    mapa-search                     mapa/mapa-search
 AUTHOR  -                               mapa/mapa_config.py
+AUTHOR  -                               mapa/exchange.py
+AUTHOR  -                               mapa/exchange_cli.py
 
 # ---------- scripts ----------
 COPY    librarian.sh                    scripts/librarian.sh
@@ -96,6 +98,7 @@ COPY    test_inyeccion_indirecta.py     tests/test_inyeccion_indirecta.py
 AUTHOR  -                               tests/test_safe_bind.py
 AUTHOR  -                               tests/test_ui_v2.py
 AUTHOR  -                               tests/test_structural_mode.py
+AUTHOR  -                               tests/test_exchange.py
 
 # ---------- systemd (plantillas: se derivan de las unidades vivas) ----------
 COPY    mapa-serve.service              systemd/mapa-serve.service.in
@@ -110,6 +113,8 @@ AUTHOR  -                               config/backends.example.json
 AUTHOR  -                               config/policy.example.json
 AUTHOR  -                               config/mapa.env.example
 AUTHOR  -                               config/ui_v2_catalog.example.json
+AUTHOR  -                               config/exchange.example.json
+AUTHOR  -                               config/export-catalog.example.json
 
 # ---------- herramientas ----------
 AUTHOR  -                               tools/leak_check.py
@@ -117,6 +122,7 @@ AUTHOR  -                               tools/bootstrap_model.py
 AUTHOR  -                               tools/build_repo.sh
 AUTHOR  -                               tools/manifest_allowlist.txt
 AUTHOR  -                               tools/leakcheck_terms.hashed
+AUTHOR  -                               tools/generate_exchange_vectors.py
 
 # ---------- docs y raíz ----------
 AUTHOR  -                               docs/arquitectura.md
@@ -124,13 +130,17 @@ AUTHOR  -                               docs/instalacion.md
 AUTHOR  -                               docs/operacion.md
 AUTHOR  -                               docs/seguridad.md
 AUTHOR  -                               docs/interfaz.md
+AUTHOR  -                               docs/exchange-v1.md
 AUTHOR  -                               README.md
 AUTHOR  -                               LICENSE
 AUTHOR  -                               requirements.txt
+AUTHOR  -                               requirements-exchange.txt
 AUTHOR  -                               install.sh
 AUTHOR  -                               .gitignore
 AUTHOR  -                               .github/workflows/leak-check.yml
 AUTHOR  -                               .github/workflows/tests.yml
+AUTHOR  -                               schemas/exchange/v1/**
+AUTHOR  -                               vectors/exchange/v1/**
 
 # ---------- ejemplos ----------
 AUTHOR  -                               examples/README.md
@@ -140,4 +150,18 @@ AUTHOR  -                               examples/corpus/**
 # Cada una acotada a path + reglas. NO aflojar reglas globalmente.
 EXCEPT  web/package-lock.json           rules=3,5   # nombres de terceros e integrity sha512
 EXCEPT  tests/test_safe_bind.py         rules=2     # necesita literales públicos reales como fixture
+EXCEPT  config/export-catalog.example.json rules=5  # hash sintético documentado
 EXCEPT  web/src/v3/App.tsx              rules=1     # rutas URL internas /atlas y /lab, no paths del host
+EXCEPT  vectors/exchange/v1/export-catalog.json rules=5 # hashes sintéticos y content IDs publicados
+EXCEPT  vectors/exchange/v1/export-manifest.json rules=5
+EXCEPT  vectors/exchange/v1/export-page.json rules=5
+EXCEPT  vectors/exchange/v1/index.json rules=5
+EXCEPT  vectors/exchange/v1/negative-host-path.json rules=5
+EXCEPT  vectors/exchange/v1/publication-consent.json rules=5
+EXCEPT  vectors/exchange/v1/publication-draft.json rules=5
+EXCEPT  vectors/exchange/v1/publication-plan.json rules=5
+EXCEPT  vectors/exchange/v1/publication-preview.json rules=5
+EXCEPT  vectors/exchange/v1/publication-receipt.json rules=5
+EXCEPT  vectors/exchange/v1/publication-reconciliation.json rules=5
+EXCEPT  vectors/exchange/v1/publication-request.json rules=5
+EXCEPT  vectors/exchange/v1/publication-review.json rules=5

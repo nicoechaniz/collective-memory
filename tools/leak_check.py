@@ -131,7 +131,25 @@ def load_manifest(repo):
 
 def walk_repo(repo):
     for dirpath, dirnames, filenames in os.walk(repo):
-        dirnames[:] = [d for d in dirnames if d not in (".git", "node_modules", "__pycache__")]
+        dirnames[:] = [
+            directory
+            for directory in dirnames
+            if directory
+            not in (
+                ".git",
+                "node_modules",
+                "__pycache__",
+                ".pytest_cache",
+                ".mypy_cache",
+                ".ruff_cache",
+                # Reproducible Vite outputs are scanned from their authored
+                # sources. Minified bundles contain regex fragments and large
+                # encoded assets that are meaningless leak-check inputs.
+                "dist-atlas",
+                "dist-atlas-graph",
+                "dist-lab",
+            )
+        ]
         for fn in filenames:
             full = os.path.join(dirpath, fn)
             yield full, os.path.relpath(full, repo)

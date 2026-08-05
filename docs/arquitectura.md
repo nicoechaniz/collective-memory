@@ -98,3 +98,14 @@ descartarlo. La confirmacion es del dueño, y eso es un guard en codigo.
 `MAPA_ROOT` son los datos; `CODE_HOME` es el codigo. Estan separados porque en el
 sistema original eran el mismo directorio, y eso hacia imposible instalarlo en
 otro lado. El control plane del director vive fuera de ambos, en `/var/lib`.
+
+## 6. Intercambio externo
+
+`exchange/v1` agrega dos autoridades separadas: export-reader sólo materializa
+generaciones inmutables desde un catálogo local; reviewed-publisher sólo publica
+targets lógicos allowlisted con consentimiento y review Ed25519.
+
+Ningún adapter externo abre `index.db`/`ui_v2.db`, comparte WAL/SHM o escribe
+paths del corpus. Durante un commit de publicación, búsqueda y Atlas fallan
+cerrado hasta que target, proyecciones y receipt formen una generación. La
+especificación completa está en [exchange-v1.md](exchange-v1.md).

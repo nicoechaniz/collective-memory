@@ -107,3 +107,13 @@ ingress y egress a la vez.
 
 **Nadie puede autenticarse en el Lab.** El grupo de servicio no existe o no
 coincide. Esto antes fallaba en silencio; ahora corta con un mensaje explicito.
+
+## Exchange v1
+
+La exportación y la publicación revisada se operan con
+`mapa/exchange_cli.py`. Configure capacidades distintas owner-only y el trust
+store Ed25519 fuera del repositorio. Si existe
+`.mapa/exchange/v1/publisher/publication.fence.json` después de un reinicio,
+ejecute `publication-recover` antes de reabrir búsqueda o Atlas. No borre el
+fence ni edite journals manualmente: recovery decide all-old o all-new contra el
+state hash vigente. Véase [exchange-v1.md](exchange-v1.md).

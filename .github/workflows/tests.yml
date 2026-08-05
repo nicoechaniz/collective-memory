@@ -18,6 +18,9 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
+      - name: dependencias del contrato de intercambio
+        run: python3 -m pip install -r requirements-exchange.txt
+
       # Invariante de seguridad: el servicio nunca queda expuesto a internet.
       - name: safe_bind
         run: python3 tests/test_safe_bind.py
@@ -33,6 +36,11 @@ jobs:
         run: |
           python3 tests/test_ui_v2.py
           python3 tests/test_structural_mode.py
+
+      - name: exportacion y publicacion revisada
+        run: |
+          python3 tests/test_exchange.py
+          python3 tools/generate_exchange_vectors.py --check
 
       - name: frontend actual
         working-directory: web
