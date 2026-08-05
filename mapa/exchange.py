@@ -33,7 +33,7 @@ import tempfile
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any, NoReturn
+from typing import Any, NoReturn, cast
 
 EXPORT_CATALOG_SCHEMA = "collective-export-catalog/v1"
 EXPORT_MANIFEST_SCHEMA = "collective-export-manifest/v1"
@@ -1259,10 +1259,12 @@ class ExportBoundary:
         # export cache itself has one writer.  Keep that serialization separate
         # from the shared corpus lock so concurrent exporters cannot race the
         # pending/current generation state.
-        with _writer_lock(self.state_root, exclusive=True):
-            with _writer_lock(self.data_root, exclusive=False):
-                assert_publication_stable(self.data_root)
-                return self._create_locked(normalized, created_at=created_at)
+        with (
+            _writer_lock(self.state_root, exclusive=True),
+            _writer_lock(self.data_root, exclusive=False),
+        ):
+            assert_publication_stable(self.data_root)
+            return self._create_locked(normalized, created_at=created_at)
 
     def manifest(self, generation_id: str | None = None) -> dict[str, Any]:
         """Return a current or historical immutable export manifest.
@@ -2177,7 +2179,7 @@ class PublicationBoundary:
                 self._effect_truth(
                     replay_target, replay_state["targets"][replay_target]
                 )
-                return replay_receipt
+                return cast(dict[str, Any], replay_receipt)
         instant = self._trusted_now()
         normalized, preview, consent_hash, review_hash = self._validate_request(
             request, instant
@@ -2210,7 +2212,7 @@ class PublicationBoundary:
                         "idempotency record does not bind a valid receipt",
                     )
                 self._effect_truth(target_id, state["targets"][target_id])
-                return locked_replay_receipt
+                return cast(dict[str, Any], locked_replay_receipt)
             before = self._before(state, target_id)
             if before != current_plan["body"]["before"]:
                 _fail("target_drift", "publication target changed after planning")
@@ -2427,7 +2429,7 @@ class PublicationBoundary:
                     return receipt
                 self._rollback(tx, journal)
                 raise
-            except Exception:
+            except Exception:  # noqa: BLE001 - rollback closes arbitrary provider failures
                 _, observed_hash = self._current_state()
                 if (
                     journal.get("new_state_hash") == observed_hash

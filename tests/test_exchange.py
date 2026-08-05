@@ -22,7 +22,7 @@ from jsonschema import Draft202012Validator, ValidationError
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "mapa"))
 
-from exchange import (  # noqa: E402
+from exchange import (
     EXPORT_CATALOG_SCHEMA,
     PUBLICATION_DRAFT_SCHEMA,
     PUBLICATION_EVIDENCE_SCHEMA,
@@ -780,9 +780,11 @@ class PublicationContractTests(unittest.TestCase):
             original["review"] = self.fx.evidence(
                 different_draft, different_preview, kind="review"
             )
-            with self.subTest(different_draft=different_draft):
-                with self.assertRaisesRegex(ExchangeError, "evidence_mismatch"):
-                    self.fx.publication.plan(original)
+            with (
+                self.subTest(different_draft=different_draft),
+                self.assertRaisesRegex(ExchangeError, "evidence_mismatch"),
+            ):
+                self.fx.publication.plan(original)
 
         expired = self.fx.request(draft, key="idem:expired", expired=True)
         with self.assertRaisesRegex(ExchangeError, "stale_evidence"):
@@ -836,9 +838,11 @@ class PublicationContractTests(unittest.TestCase):
         frontmatter = self.fx.draft()
         frontmatter["source_refs"] = [{"id": "sk-" + "a" * 24, "hash": "1" * 64}]
         for secret_draft in (*secret_cases, frontmatter):
-            with self.subTest(secret_draft=secret_draft):
-                with self.assertRaisesRegex(ExchangeError, "secret_detected"):
-                    self.fx.publication.preview(secret_draft)
+            with (
+                self.subTest(secret_draft=secret_draft),
+                self.assertRaisesRegex(ExchangeError, "secret_detected"),
+            ):
+                self.fx.publication.preview(secret_draft)
 
         with self.assertRaisesRegex(ExchangeError, "publication_too_large"):
             self.fx.publication.preview(self.fx.draft(body="x" * (1024 * 1024)))
@@ -883,7 +887,7 @@ class PublicationContractTests(unittest.TestCase):
             self.fx.publisher,
             self.fx.trust,
             projection_runner=FakeProjectionRunner(self.fx.root, self.fx.data),
-            clock=lambda: dt.datetime(2026, 8, 5, 6),
+            clock=lambda: dt.datetime(2026, 8, 5, 6),  # noqa: DTZ001 - negative fixture
         )
         with self.assertRaisesRegex(ExchangeError, "invalid_clock"):
             bad_clock.plan(request)

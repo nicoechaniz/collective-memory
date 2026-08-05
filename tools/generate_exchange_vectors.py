@@ -17,7 +17,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "mapa"))
 
-from exchange import (  # noqa: E402
+from exchange import (
     EXPORT_CATALOG_SCHEMA,
     PUBLICATION_DRAFT_SCHEMA,
     PUBLICATION_EVIDENCE_SCHEMA,

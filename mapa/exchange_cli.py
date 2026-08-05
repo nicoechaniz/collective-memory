@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from exchange import (  # noqa: E402
+from exchange import (
     ExchangeCapability,
     ExchangeConfig,
     ExchangeError,
