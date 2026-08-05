@@ -424,6 +424,8 @@ class ExportContractTests(unittest.TestCase):
 
     def test_immutable_generation_pagination_retry_successor_and_tombstone(self):
         first = self.create(self.catalog())
+        self.assertEqual(self.export.manifest(), first)
+        self.assertEqual(self.export.manifest(first["generation_id"]), first)
         self.assertEqual(first, self.create(self.catalog()))
         page1 = self.export.page(first["generation_id"], limit=1)
         page2 = self.export.page(
@@ -440,6 +442,8 @@ class ExportContractTests(unittest.TestCase):
 
         (self.fx.root / "mapa" / "a.md").write_text("# A2\n", encoding="utf-8")
         second = self.create(self.catalog((2, 1)))
+        self.assertEqual(self.export.manifest(first["generation_id"]), first)
+        self.assertEqual(self.export.manifest(second["generation_id"]), second)
         self.assertEqual(
             second["body"]["predecessor_generation"], first["generation_id"]
         )

@@ -1264,6 +1264,24 @@ class ExportBoundary:
                 assert_publication_stable(self.data_root)
                 return self._create_locked(normalized, created_at=created_at)
 
+    def manifest(self, generation_id: str | None = None) -> dict[str, Any]:
+        """Return a current or historical immutable export manifest.
+
+        Historical lookup lets a consumer that missed multiple generations
+        walk ``predecessor_generation`` backwards and verify the entire chain
+        before importing it oldest-first. No cache or corpus mutation occurs.
+        """
+
+        self.capability.require_role("export-reader")
+        if generation_id is None:
+            manifest = self._current_manifest()
+            if manifest is None:
+                _fail("unknown_generation", "no export generation is available")
+        else:
+            _directory, manifest = self._stored_generation(generation_id)
+        self.capability.require("export-reader", manifest["body"]["scope_id"])
+        return manifest
+
     def _create_locked(
         self, normalized: Mapping[str, Any], *, created_at: str
     ) -> dict[str, Any]:

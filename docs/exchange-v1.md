@@ -104,6 +104,11 @@ successor explícito `tombstone`; la ausencia nunca significa revocación.
 `ExportBoundary.page` produce páginas acotadas ligadas a `generation_id` y
 `manifest_hash`. El cursor contiene generación, manifest, offset y checksum.
 Reutilizarlo contra otra generación falla con `mixed_generation`.
+`ExportBoundary.manifest(generation_id)` recupera también un manifest histórico
+inmutable. Un consumidor que estuvo offline recorre `predecessor_generation`
+hacia atrás hasta su high-water aceptado, verifica la cadena completa y recién
+entonces la aplica en orden ascendente. La lectura conserva el mismo capability
+y scope y no muta el corpus ni el export cache.
 `object_bytes` entrega únicamente un `sha256:*` declarado por ese manifest y
 reverifica los bytes antes de responder.
 
