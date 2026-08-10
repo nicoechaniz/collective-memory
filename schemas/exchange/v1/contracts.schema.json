@@ -449,7 +449,7 @@
         "action": {"enum": ["publish", "successor", "tombstone"]},
         "before": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/targetRecord"}]},
         "after": {"$ref": "#/$defs/after"},
-        "source_refs": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"$ref": "#/$defs/sourceRef"}},
+        "source_refs": {"type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": {"$ref": "#/$defs/sourceRef"}},
         "source_checkpoint": {"$ref": "#/$defs/checkpoint"},
         "classification": {"$ref": "#/$defs/identifier"},
         "policy_version": {"$ref": "#/$defs/identifier"},

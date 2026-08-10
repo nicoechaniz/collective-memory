@@ -520,6 +520,13 @@ class ExportContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ExchangeError, "missing_provenance"):
             self.create(missing)
 
+        too_many_authors = self.catalog()
+        too_many_authors["entries"][0]["authors"] = [
+            f"author:bounded:{index:03d}" for index in range(129)
+        ]
+        with self.assertRaisesRegex(ExchangeError, "missing_provenance"):
+            self.create(too_many_authors)
+
         unknown = self.catalog()
         unknown["entries"][0]["database"] = "index.db"
         with self.assertRaisesRegex(ExchangeError, "unknown_field"):
@@ -911,6 +918,18 @@ class PublicationContractTests(unittest.TestCase):
             self.fx.publication.recover()
         transaction_link.unlink()
 
+        corrupt_transaction = self.fx.publication.transactions / "corrupt-journal"
+        corrupt_transaction.mkdir()
+        (corrupt_transaction / "journal.json").write_text("{}\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExchangeError, "state_corrupt"):
+            self.fx.publication.recover()
+        shutil.rmtree(corrupt_transaction)
+
+        self.fx.publication.fence.write_text("{}\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExchangeError, "state_corrupt"):
+            self.fx.publication.recover()
+        self.fx.publication.fence.unlink()
+
         lock = self.fx.data / "lock"
         external = Path(self.fx.temp.name) / "foreign-lock"
         external.touch()
@@ -922,6 +941,16 @@ class PublicationContractTests(unittest.TestCase):
     def test_publication_rejects_a_non_symlink_current_pointer(self):
         current = self.fx.publication.state_root / "current"
         current.write_text("not a generation pointer\n", encoding="utf-8")
+        with self.assertRaisesRegex(ExchangeError, "state_corrupt"):
+            self.fx.publication.preview(self.fx.draft())
+        current.unlink()
+
+        invalid_state = []
+        state_hash = sha(canonical_bytes(invalid_state))
+        generation = self.fx.publication.generations / state_hash
+        generation.mkdir()
+        (generation / "state.json").write_bytes(canonical_bytes(invalid_state) + b"\n")
+        current.symlink_to(generation)
         with self.assertRaisesRegex(ExchangeError, "state_corrupt"):
             self.fx.publication.preview(self.fx.draft())
 

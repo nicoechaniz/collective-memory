@@ -53,6 +53,7 @@ MAX_ARTIFACTS = 4096
 MAX_ARTIFACT_BYTES = 2 * 1024 * 1024
 MAX_EXPORT_BYTES = 64 * 1024 * 1024
 MAX_PUBLICATION_BYTES = 1024 * 1024
+MAX_AUTHORS = 128
 MAX_SOURCE_REFS = 128
 MAX_PAGE = 256
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
@@ -317,10 +318,20 @@ def _ensure_directory(path: Path, *, create: bool = False, mode: int = 0o700) ->
 
 
 def _validate_relative_path(value: str) -> str:
-    if not isinstance(value, str) or not value or "\\" in value or "\x00" in value:
+    if (
+        not isinstance(value, str)
+        or not value
+        or len(value.encode("utf-8")) > 4096
+        or "\\" in value
+        or "\x00" in value
+    ):
         _fail("unsafe_path", "configured target path is invalid")
     path = PurePosixPath(value)
-    if path.is_absolute() or any(part in ("", ".", "..") for part in path.parts):
+    if (
+        path.is_absolute()
+        or len(path.parts) > 64
+        or any(part in ("", ".", "..") for part in path.parts)
+    ):
         _fail("unsafe_path", "configured target path is invalid")
     return path.as_posix()
 
@@ -1043,8 +1054,14 @@ def _validate_catalog(value: Any) -> dict[str, Any]:
             "text/plain; charset=utf-8",
         ):
             _fail("unsupported_media_type", "export artifact media type is unsupported")
-        if not isinstance(item["authors"], list) or not item["authors"]:
-            _fail("missing_provenance", "export artifact authors must be non-empty")
+        if (
+            not isinstance(item["authors"], list)
+            or not 1 <= len(item["authors"]) <= MAX_AUTHORS
+        ):
+            _fail(
+                "missing_provenance",
+                "export artifact authors must be a bounded non-empty array",
+            )
         authors = [_identifier(author, "author") for author in item["authors"]]
         if authors != sorted(set(authors)):
             _fail("non_canonical_provenance", "authors must be unique and sorted")
@@ -1622,8 +1639,29 @@ class DefaultProjectionRunner:
 
     def restore(self, destination: Path) -> None:
         backup = destination / "projection-backup"
-        snapshot = _read_json(backup / "snapshot.json", max_bytes=16 * 1024)
-        present = set(snapshot.get("present", []))
+        try:
+            snapshot = _closed(
+                _read_json(backup / "snapshot.json", max_bytes=16 * 1024),
+                required=("present",),
+                name="projection rollback snapshot",
+            )
+            if (
+                not isinstance(snapshot["present"], list)
+                or snapshot["present"] != sorted(set(snapshot["present"]))
+                or not set(snapshot["present"])
+                <= {
+                    "index.db",
+                    "manifest.json",
+                    "corpus_audit.json",
+                    "corpus_audit.md",
+                    "ui_status.json",
+                    "ui",
+                }
+            ):
+                _fail("invalid_snapshot", "projection rollback snapshot is invalid")
+            present = set(snapshot["present"])
+        except (ExchangeError, TypeError):
+            _fail("state_corrupt", "projection rollback snapshot is corrupt")
         for name in (
             "index.db",
             "manifest.json",
@@ -1827,8 +1865,22 @@ class PublicationBoundary:
             _fail("state_corrupt", "current publication generation is unavailable")
         if generation.parent != self.generations:
             _fail("state_corrupt", "current publication generation escapes its store")
-        state = _read_json(generation / "state.json")
-        if state.get("schema") != PUBLICATION_STATE_SCHEMA:
+        try:
+            state = _closed(
+                _read_json(generation / "state.json"),
+                required=(
+                    "schema",
+                    "generation",
+                    "previous_state_hash",
+                    "targets",
+                    "idempotency",
+                    "receipts",
+                ),
+                name="publication state",
+            )
+        except ExchangeError:
+            _fail("state_corrupt", "publication state shape is invalid")
+        if state["schema"] != PUBLICATION_STATE_SCHEMA:
             _fail("state_corrupt", "publication state schema is invalid")
         digest = _sha(canonical_bytes(state))
         if generation.name != digest:
@@ -2068,6 +2120,105 @@ class PublicationBoundary:
     def _write_journal(self, tx: Path, journal: Mapping[str, Any]) -> None:
         _atomic_json(tx / "journal.json", dict(journal))
 
+    def _validate_journal(self, value: Any, tx: Path) -> dict[str, Any]:
+        try:
+            obj = _closed(
+                value,
+                required=(
+                    "schema",
+                    "transaction_id",
+                    "request_hash",
+                    "idempotency_key",
+                    "target_id",
+                    "relative_path",
+                    "target_existed",
+                    "created_parent_paths",
+                    "new_state_hash",
+                    "stage",
+                ),
+                name="publication journal",
+            )
+            transaction_id = _identifier(obj["transaction_id"], "transaction_id")
+            transaction_prefix = "cm:publication-transaction:v1:"
+            if (
+                obj["schema"] != "collective-publication-journal/v1"
+                or not transaction_id.startswith(transaction_prefix)
+                or not B64U_SHA256_RE.fullmatch(
+                    transaction_id.removeprefix(transaction_prefix)
+                )
+                or tx.name != transaction_id.replace(":", "_")
+            ):
+                _fail("invalid_journal", "publication journal identity is invalid")
+            _hash(obj["request_hash"], "request_hash")
+            _identifier(obj["idempotency_key"], "idempotency_key")
+            target_id = _identifier(obj["target_id"], "target_id")
+            relative = _validate_relative_path(obj["relative_path"])
+            if (
+                target_id not in self.config.targets
+                or self.config.targets[target_id] != relative
+            ):
+                _fail("invalid_journal", "publication journal target is invalid")
+            if not isinstance(obj["target_existed"], bool):
+                _fail("invalid_journal", "publication journal target state is invalid")
+            raw_parents = obj["created_parent_paths"]
+            if not isinstance(raw_parents, list) or len(raw_parents) > 64:
+                _fail("invalid_journal", "publication journal parent list is invalid")
+            created_parents = [
+                _validate_relative_path(parent) for parent in raw_parents
+            ]
+            path_parts = PurePosixPath(relative).parts[:-1]
+            valid_parents = [
+                PurePosixPath(*path_parts[:depth]).as_posix()
+                for depth in range(len(path_parts), 0, -1)
+            ]
+            if (
+                created_parents != valid_parents[: len(created_parents)]
+                or len(set(created_parents)) != len(created_parents)
+                or (obj["target_existed"] and created_parents)
+            ):
+                _fail("invalid_journal", "publication journal parent chain is invalid")
+            _nullable_hash(obj["new_state_hash"], "new_state_hash")
+            stage = _text(obj["stage"], "journal stage", limit=64)
+            if stage not in {
+                "snapshot-staged",
+                "prepared",
+                "target-published",
+                "projections-published",
+                "receipt-staged",
+                "state-published",
+                "committed",
+                "rolled-back",
+            }:
+                _fail("invalid_journal", "publication journal stage is invalid")
+            return obj
+        except ExchangeError:
+            _fail("state_corrupt", "publication transaction journal is corrupt")
+
+    def _read_fence(self) -> dict[str, Any] | None:
+        if not (self.fence.exists() or self.fence.is_symlink()):
+            return None
+        try:
+            obj = _closed(
+                _read_json(self.fence, max_bytes=16 * 1024),
+                required=("schema", "transaction_id", "stage"),
+                name="publication fence",
+            )
+            transaction_id = _identifier(obj["transaction_id"], "transaction_id")
+            stage = _text(obj["stage"], "fence stage", limit=64)
+            transaction_prefix = "cm:publication-transaction:v1:"
+            if (
+                obj["schema"] != "collective-publication-fence/v1"
+                or not transaction_id.startswith(transaction_prefix)
+                or not B64U_SHA256_RE.fullmatch(
+                    transaction_id.removeprefix(transaction_prefix)
+                )
+                or stage not in {"snapshot-staged", "prepared", "target-published"}
+            ):
+                _fail("invalid_fence", "publication fence is invalid")
+            return obj
+        except ExchangeError:
+            _fail("state_corrupt", "publication transaction fence is corrupt")
+
     def _transaction_directories(self) -> list[Path]:
         _ensure_directory(self.transactions)
         directories: list[Path] = []
@@ -2136,6 +2287,7 @@ class PublicationBoundary:
         recovered: list[dict[str, Any]] = []
         with _writer_lock(self.data_root, exclusive=True):
             _state, current_hash = self._current_state()
+            fence = self._read_fence()
             for tx in self._transaction_directories():
                 journal_path = tx / "journal.json"
                 if not journal_path.exists():
@@ -2143,9 +2295,8 @@ class PublicationBoundary:
                     # journal are durable. An orphan without a matching fence
                     # is therefore a safely abandoned pre-prepare attempt.
                     fenced = False
-                    if self.fence.exists():
-                        fence = _read_json(self.fence, max_bytes=16 * 1024)
-                        fence_tx = fence.get("transaction_id")
+                    if fence is not None:
+                        fence_tx = fence["transaction_id"]
                         fenced = (
                             isinstance(fence_tx, str)
                             and fence_tx.replace(":", "_") == tx.name
@@ -2160,7 +2311,7 @@ class PublicationBoundary:
                         {"transaction_id": tx.name, "outcome": "abandoned"}
                     )
                     continue
-                journal = _read_json(journal_path)
+                journal = self._validate_journal(_read_json(journal_path), tx)
                 stage = journal.get("stage")
                 if stage in ("committed", "rolled-back"):
                     continue
@@ -2184,11 +2335,13 @@ class PublicationBoundary:
                             "outcome": "rolled-back",
                         }
                     )
-            if self.fence.exists():
+            if fence is not None and (self.fence.exists() or self.fence.is_symlink()):
                 active = [
                     path
                     for path in self._transaction_directories()
-                    if _read_json(path / "journal.json").get("stage")
+                    if self._validate_journal(_read_json(path / "journal.json"), path)[
+                        "stage"
+                    ]
                     not in ("committed", "rolled-back")
                 ]
                 if not active:
