@@ -46,6 +46,7 @@ jobs:
         working-directory: web
         run: |
           npm ci
+          npm audit --audit-level=moderate
           npm run build:all
           VITE_LAB_STRUCTURAL_ONLY=1 npm run build:lab
           VITE_UI_LOCALE=en VITE_LAB_STRUCTURAL_ONLY=1 npm run build:all
