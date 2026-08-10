@@ -954,6 +954,57 @@ class PublicationContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ExchangeError, "state_corrupt"):
             self.fx.publication.preview(self.fx.draft())
 
+    def test_recovery_refuses_symlinked_rollback_bytes(self):
+        first = self.fx.apply(self.fx.request(self.fx.draft(), key="idem:first"))
+        successor = self.fx.draft(
+            action="successor",
+            predecessor=first,
+            title="Alpha successor",
+            body="Reviewed successor bytes.",
+        )
+        request = self.fx.request(successor, key="idem:rollback-link")
+
+        def crash(stage):
+            if stage == "prepared":
+                raise InjectedCrash(stage)
+
+        crashing = PublicationBoundary(
+            self.fx.root,
+            self.fx.data,
+            self.fx.config,
+            self.fx.publisher,
+            self.fx.trust,
+            fault_hook=crash,
+            projection_runner=FakeProjectionRunner(self.fx.root, self.fx.data, crash),
+            clock=lambda: FIXED_INSTANT,
+        )
+        with self.assertRaises(InjectedCrash):
+            crashing.apply(request, crashing.plan(request))
+
+        transaction = next(
+            path
+            for path in crashing.transactions.iterdir()
+            if json.loads((path / "journal.json").read_text(encoding="utf-8"))["stage"]
+            == "prepared"
+        )
+        rollback = transaction / "target.before"
+        external = Path(self.fx.temp.name) / "foreign-rollback"
+        external.write_text("must not be restored", encoding="utf-8")
+        rollback.unlink()
+        rollback.symlink_to(external)
+
+        recovered = PublicationBoundary(
+            self.fx.root,
+            self.fx.data,
+            self.fx.config,
+            self.fx.publisher,
+            self.fx.trust,
+            projection_runner=FakeProjectionRunner(self.fx.root, self.fx.data),
+            clock=lambda: FIXED_INSTANT,
+        )
+        with self.assertRaisesRegex(ExchangeError, "state_corrupt"):
+            recovered.recover()
+
     def test_untracked_target_and_unknown_fields_fail(self):
         target = self.fx.root / "published" / "alpha.md"
         target.parent.mkdir()

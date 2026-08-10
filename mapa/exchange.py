@@ -53,6 +53,7 @@ MAX_ARTIFACTS = 4096
 MAX_ARTIFACT_BYTES = 2 * 1024 * 1024
 MAX_EXPORT_BYTES = 64 * 1024 * 1024
 MAX_PUBLICATION_BYTES = 1024 * 1024
+MAX_PROJECTION_SNAPSHOT_BYTES = 512 * 1024 * 1024
 MAX_AUTHORS = 128
 MAX_SOURCE_REFS = 128
 MAX_PAGE = 256
@@ -423,6 +424,81 @@ def _read_regular_bytes(
     finally:
         if descriptor >= 0:
             os.close(descriptor)
+
+
+def _copy_regular_file(
+    source: Path,
+    destination: Path,
+    *,
+    max_bytes: int,
+    mode: int,
+    error_code: str,
+    label: str,
+) -> str:
+    """Atomically copy one bounded regular file without following source links."""
+
+    source_fd = -1
+    destination_fd = -1
+    temporary: Path | None = None
+    try:
+        flags = os.O_RDONLY | os.O_CLOEXEC | getattr(os, "O_NOFOLLOW", 0)
+        source_fd = os.open(source, flags)
+        initial = os.fstat(source_fd)
+        if not stat.S_ISREG(initial.st_mode) or initial.st_size > max_bytes:
+            _fail(error_code, f"{label} is not a bounded regular file")
+        destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        destination_fd, temporary_name = tempfile.mkstemp(
+            prefix=f".{destination.name}.", dir=destination.parent
+        )
+        temporary = Path(temporary_name)
+        total = 0
+        with (
+            os.fdopen(source_fd, "rb") as reader,
+            os.fdopen(destination_fd, "wb") as writer,
+        ):
+            source_fd = -1
+            destination_fd = -1
+            while chunk := reader.read(1024 * 1024):
+                total += len(chunk)
+                if total > max_bytes:
+                    _fail(error_code, f"{label} exceeds its byte bound")
+                writer.write(chunk)
+            writer.flush()
+            os.fsync(writer.fileno())
+            final = os.fstat(reader.fileno())
+        if total != initial.st_size or (
+            final.st_dev,
+            final.st_ino,
+            final.st_size,
+            final.st_mtime_ns,
+            final.st_ctime_ns,
+        ) != (
+            initial.st_dev,
+            initial.st_ino,
+            initial.st_size,
+            initial.st_mtime_ns,
+            initial.st_ctime_ns,
+        ):
+            _fail(error_code, f"{label} changed while being copied")
+        os.chmod(temporary, mode)
+        os.replace(temporary, destination)
+        _fsync_directory(destination.parent)
+        temporary = None
+        return str(destination)
+    except ExchangeError:
+        raise
+    except OSError:
+        _fail(error_code, f"{label} could not be copied safely")
+    finally:
+        if source_fd >= 0:
+            os.close(source_fd)
+        if destination_fd >= 0:
+            os.close(destination_fd)
+        if temporary is not None:
+            try:
+                temporary.unlink()
+            except FileNotFoundError:
+                pass
 
 
 def _atomic_bytes(path: Path, data: bytes, mode: int = 0o600) -> None:
@@ -1613,7 +1689,14 @@ class DefaultProjectionRunner:
             if source.is_symlink() or (source.exists() and not source.is_file()):
                 _fail("unsafe_projection", "projection snapshot source is unsafe")
             if source.is_file():
-                shutil.copy2(source, backup / name)
+                _copy_regular_file(
+                    source,
+                    backup / name,
+                    max_bytes=MAX_PROJECTION_SNAPSHOT_BYTES,
+                    mode=0o600,
+                    error_code="unsafe_projection",
+                    label="projection snapshot source",
+                )
                 present.append(name)
         ui = self.data_root / "ui"
         if ui.exists() and not (ui.is_symlink() or ui.is_dir()):
@@ -1629,7 +1712,14 @@ class DefaultProjectionRunner:
             shutil.copytree(
                 ui_real,
                 backup / "ui",
-                copy_function=shutil.copy2,
+                copy_function=lambda source, destination: _copy_regular_file(
+                    Path(source),
+                    Path(destination),
+                    max_bytes=MAX_PROJECTION_SNAPSHOT_BYTES,
+                    mode=0o600,
+                    error_code="unsafe_projection",
+                    label="UI projection snapshot file",
+                ),
                 symlinks=True,
             )
             _require_plain_tree(backup / "ui", label="UI projection snapshot")
@@ -1671,7 +1761,14 @@ class DefaultProjectionRunner:
         ):
             target = self.data_root / name
             if name in present:
-                _atomic_bytes(target, (backup / name).read_bytes(), mode=0o644)
+                _copy_regular_file(
+                    backup / name,
+                    target,
+                    max_bytes=MAX_PROJECTION_SNAPSHOT_BYTES,
+                    mode=0o644,
+                    error_code="state_corrupt",
+                    label="projection rollback file",
+                )
             else:
                 try:
                     target.unlink()
@@ -1683,7 +1780,19 @@ class DefaultProjectionRunner:
             restore_root = self.data_root / f"ui.exchange-restore.{destination.name}"
             if restore_root.exists():
                 shutil.rmtree(restore_root)
-            shutil.copytree(backup / "ui", restore_root, symlinks=True)
+            shutil.copytree(
+                backup / "ui",
+                restore_root,
+                copy_function=lambda source, destination: _copy_regular_file(
+                    Path(source),
+                    Path(destination),
+                    max_bytes=MAX_PROJECTION_SNAPSHOT_BYTES,
+                    mode=0o644,
+                    error_code="state_corrupt",
+                    label="UI projection rollback file",
+                ),
+                symlinks=True,
+            )
             _require_plain_tree(restore_root, label="UI projection rollback")
             _atomic_symlink(ui_link, restore_root)
         else:
@@ -2248,7 +2357,14 @@ class PublicationBoundary:
         target = _resolved_file(self.root, relative, must_exist=False)
         old = tx / "target.before"
         if journal["target_existed"]:
-            self._install_target(target, old.read_bytes())
+            _copy_regular_file(
+                old,
+                target,
+                max_bytes=MAX_PUBLICATION_BYTES,
+                mode=0o644,
+                error_code="state_corrupt",
+                label="publication target rollback file",
+            )
         else:
             try:
                 target.unlink()
@@ -2447,7 +2563,14 @@ class PublicationBoundary:
                 parent = parent.parent
             try:
                 if target_existed:
-                    _atomic_bytes(tx / "target.before", target.read_bytes())
+                    _copy_regular_file(
+                        target,
+                        tx / "target.before",
+                        max_bytes=MAX_PUBLICATION_BYTES,
+                        mode=0o600,
+                        error_code="snapshot_failed",
+                        label="publication target rollback source",
+                    )
                 self.runner.snapshot(tx)
             except ExchangeError:
                 shutil.rmtree(tx, ignore_errors=True)
