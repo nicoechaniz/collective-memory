@@ -459,6 +459,31 @@ def _read_json(path: Path, *, max_bytes: int = MAX_EXPORT_BYTES) -> Any:
             os.close(descriptor)
 
 
+def _require_plain_tree(path: Path, *, label: str) -> None:
+    """Reject links and special files anywhere in a durable projection tree."""
+
+    try:
+        root_stat = path.lstat()
+    except OSError:
+        _fail("unsafe_projection", f"{label} is unavailable")
+    if stat.S_ISLNK(root_stat.st_mode) or not stat.S_ISDIR(root_stat.st_mode):
+        _fail("unsafe_projection", f"{label} must be a real directory")
+    for parent, directories, files in os.walk(path, followlinks=False):
+        for name in (*directories, *files):
+            entry = Path(parent) / name
+            try:
+                entry_stat = entry.lstat()
+            except OSError:
+                _fail("unsafe_projection", f"{label} contains an unavailable entry")
+            if stat.S_ISLNK(entry_stat.st_mode) or not (
+                stat.S_ISDIR(entry_stat.st_mode) or stat.S_ISREG(entry_stat.st_mode)
+            ):
+                _fail(
+                    "unsafe_projection",
+                    f"{label} contains a link or special file",
+                )
+
+
 def _atomic_symlink(link: Path, target: Path) -> None:
     link.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     tmp = link.parent / f".{link.name}.{os.getpid()}.tmp"
@@ -1023,11 +1048,19 @@ def _validate_catalog(value: Any) -> dict[str, Any]:
         authors = [_identifier(author, "author") for author in item["authors"]]
         if authors != sorted(set(authors)):
             _fail("non_canonical_provenance", "authors must be unique and sorted")
-        if not isinstance(item["source_refs"], list) or not item["source_refs"]:
-            _fail("missing_provenance", "export source references must be non-empty")
+        if (
+            not isinstance(item["source_refs"], list)
+            or not 1 <= len(item["source_refs"]) <= MAX_SOURCE_REFS
+        ):
+            _fail(
+                "missing_provenance",
+                "export source references must be a bounded non-empty array",
+            )
         source_refs = [_source_ref(ref) for ref in item["source_refs"]]
         if source_refs != sorted(source_refs, key=lambda ref: (ref["id"], ref["hash"])):
             _fail("non_canonical_sources", "export source references must be sorted")
+        if len({(ref["id"], ref["hash"]) for ref in source_refs}) != len(source_refs):
+            _fail("duplicate_source", "export source references must be unique")
         predecessor = _nullable_id(
             item["predecessor_artifact_id"], "predecessor_artifact_id"
         )
@@ -1572,7 +1605,17 @@ class DefaultProjectionRunner:
             ui_real = ui.resolve(strict=True)
             if ui_real != self.data_root and self.data_root not in ui_real.parents:
                 _fail("unsafe_projection", "UI projection escapes the data root")
-            shutil.copytree(ui_real, backup / "ui", copy_function=shutil.copy2)
+            _require_plain_tree(ui_real, label="UI projection snapshot")
+            # Preserve links rather than following them if a writer ignoring the
+            # shared lock races this copy; post-copy validation then rejects the
+            # snapshot without intentionally dereferencing a link target.
+            shutil.copytree(
+                ui_real,
+                backup / "ui",
+                copy_function=shutil.copy2,
+                symlinks=True,
+            )
+            _require_plain_tree(backup / "ui", label="UI projection snapshot")
             present.append("ui")
         _atomic_json(backup / "snapshot.json", {"present": sorted(present)})
         return {"present": sorted(present)}
@@ -1598,10 +1641,12 @@ class DefaultProjectionRunner:
                     pass
         ui_link = self.data_root / "ui"
         if "ui" in present:
+            _require_plain_tree(backup / "ui", label="UI projection rollback")
             restore_root = self.data_root / f"ui.exchange-restore.{destination.name}"
             if restore_root.exists():
                 shutil.rmtree(restore_root)
-            shutil.copytree(backup / "ui", restore_root)
+            shutil.copytree(backup / "ui", restore_root, symlinks=True)
+            _require_plain_tree(restore_root, label="UI projection rollback")
             _atomic_symlink(ui_link, restore_root)
         else:
             try:

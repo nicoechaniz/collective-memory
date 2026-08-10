@@ -535,6 +535,19 @@ class ExportContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ExchangeError, "duplicate_artifact"):
             self.create(duplicate)
 
+        duplicate_source = self.catalog()
+        duplicate_source["entries"][0]["source_refs"] *= 2
+        with self.assertRaisesRegex(ExchangeError, "duplicate_source"):
+            self.create(duplicate_source)
+
+        too_many_sources = self.catalog()
+        too_many_sources["entries"][0]["source_refs"] = [
+            {"id": f"source:bounded:{index:03d}", "hash": f"{index:064x}"}
+            for index in range(129)
+        ]
+        with self.assertRaisesRegex(ExchangeError, "missing_provenance"):
+            self.create(too_many_sources)
+
         missing_license = self.catalog()
         missing_license["entries"][0]["license"] = ""
         with self.assertRaisesRegex(ExchangeError, "invalid_field"):
@@ -949,6 +962,28 @@ class PublicationContractTests(unittest.TestCase):
         # The lock file is intentionally durable; a dead holder does not leave
         # authority behind and the next process can proceed.
         self.fx.publication.preview(self.fx.draft())
+
+        ui_generation = self.fx.data / "ui.hostile"
+        ui_generation.mkdir()
+        external = Path(self.fx.temp.name) / "external-projection"
+        external.write_text("must not enter rollback state", encoding="utf-8")
+        (ui_generation / "escape").symlink_to(external)
+        (self.fx.data / "ui").symlink_to(ui_generation)
+        real_boundary = PublicationBoundary(
+            self.fx.root,
+            self.fx.data,
+            self.fx.config,
+            self.fx.publisher,
+            self.fx.trust,
+            clock=lambda: FIXED_INSTANT,
+        )
+        snapshot = real_boundary.transactions / "snapshot-symlink-test"
+        snapshot.mkdir()
+        with self.assertRaisesRegex(ExchangeError, "unsafe_projection"):
+            real_boundary.runner.snapshot(snapshot)
+        shutil.rmtree(snapshot)
+        (self.fx.data / "ui").unlink()
+        shutil.rmtree(ui_generation)
 
         class SnapshotFailingRunner(FakeProjectionRunner):
             def snapshot(self, _destination):
